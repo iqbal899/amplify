@@ -4,6 +4,9 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
+    "generate": "drizzle-kit generate",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
