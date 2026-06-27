@@ -36,6 +36,34 @@
       "when": 1782555426146,
       "tag": "0004_curvy_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782567956526,
+      "tag": "0005_gifted_susan_delgado",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782568578104,
+      "tag": "0006_aromatic_piledriver",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782570183639,
+      "tag": "0007_perfect_marten_broadcloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782571005749,
+      "tag": "0008_stormy_inhumans",
+      "breakpoints": true
     }
   ]
 }
