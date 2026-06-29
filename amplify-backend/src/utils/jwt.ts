@@ -1,19 +1,22 @@
-import jwt from "jsonwebtoken";
+import { sign, verify } from "hono/jwt";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-export function generateToken(creatorId: number) {
-  return jwt.sign(
+export async function generateToken(creatorId: number) {
+  return await sign(
     {
       creatorId,
+      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
     },
     JWT_SECRET,
-    {
-      expiresIn: "7d",
-    }
+    "HS256"
   );
 }
 
-export function verifyToken(token: string) {
-  return jwt.verify(token, JWT_SECRET);
+export async function verifyToken(token: string) {
+  return await verify(
+    token,
+    JWT_SECRET,
+    "HS256"
+  );
 }

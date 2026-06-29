@@ -38,10 +38,10 @@ export async function registerCreator(data: RegisterInput) {
     })
     .returning();
 
-  const token = generateToken(creator.id);
+  const token = await generateToken(creator.id);
 
   return {
-    creator,
+    creator : sanitizeCreator(creator),
     token,
   };
 }
@@ -66,10 +66,18 @@ export async function loginCreator(data: LoginInput) {
         throw new Error("Invalid email or password");
     }
 
-    const token = generateToken(creator.id);
+    const token = await generateToken(creator.id);
 
     return {
-        creator,
+        creator : sanitizeCreator(creator),
         token,
     };
+}
+
+function sanitizeCreator(
+  creator: typeof creators.$inferSelect
+) {
+  const { passwordHash, ...safeCreator } = creator;
+
+  return safeCreator;
 }
