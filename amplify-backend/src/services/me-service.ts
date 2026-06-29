@@ -4,26 +4,62 @@ import { db } from "../db/client";
 import { creators } from "../db/schema/creators";
 
 export async function getCreatorProfile(
-  creatorId: number
+    creatorId: number
 ) {
-  const [creator] = await db
-    .select({
-      id: creators.id,
-      name: creators.name,
-      email: creators.email,
-      phone: creators.phone,
-      instagramUsername: creators.instagramUsername,
-      profileImage: creators.profileImage,
-      createdAt: creators.createdAt,
-      updatedAt: creators.updatedAt,
-    })
-    .from(creators)
-    .where(eq(creators.id, creatorId))
-    .limit(1);
+    const [creator] = await db
+        .select({
+            id: creators.id,
+            name: creators.name,
+            email: creators.email,
+            phone: creators.phone,
+            instagramUsername: creators.instagramUsername,
+            profileImage: creators.profileImage,
+            createdAt: creators.createdAt,
+            updatedAt: creators.updatedAt,
+        })
+        .from(creators)
+        .where(eq(creators.id, creatorId))
+        .limit(1);
 
-  if (!creator) {
-    throw new Error("Creator not found");
-  }
+    if (!creator) {
+        throw new Error("Creator not found");
+    }
 
-  return creator;
+    return creator;
+}
+
+type UpdateProfileInput = {
+    name?: string;
+    phone?: string;
+    profileImage?: string;
+    instagramUsername?: string;
+};
+
+export async function updateCreatorProfile(
+    creatorId: number,
+    data: UpdateProfileInput
+) {
+    const [creator] = await db
+        .update(creators)
+        .set({
+            ...data,
+            updatedAt: new Date(),
+        })
+        .where(eq(creators.id, creatorId))
+        .returning({
+            id: creators.id,
+            name: creators.name,
+            email: creators.email,
+            phone: creators.phone,
+            instagramUsername: creators.instagramUsername,
+            profileImage: creators.profileImage,
+            createdAt: creators.createdAt,
+            updatedAt: creators.updatedAt,
+        });
+
+    if (!creator) {
+        throw new Error("Creator not found");
+    }
+
+    return creator;
 }
