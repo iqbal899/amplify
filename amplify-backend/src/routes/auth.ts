@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { register, login } from "../controllers/authcontroller";
+import { register, login } from "../controllers/auth-controller";
 
 const auth = new Hono();
 

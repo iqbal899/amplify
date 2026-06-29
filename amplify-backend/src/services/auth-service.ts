@@ -11,7 +11,10 @@ type RegisterInput = {
   password: string;
   phone?: string;
 };
-
+type LoginInput = {
+  email: string;
+  password: string;
+};
 export async function registerCreator(data: RegisterInput) {
   const [existingCreator] = await db
     .select()
@@ -41,4 +44,32 @@ export async function registerCreator(data: RegisterInput) {
     creator,
     token,
   };
+}
+
+export async function loginCreator(data: LoginInput) {
+    const [creator] = await db
+        .select()
+        .from(creators)
+        .where(eq(creators.email, data.email))
+        .limit(1);
+
+    if (!creator) {
+        throw new Error("Invalid email or password");
+    }
+
+    const validPassword = await bcrypt.compare(
+        data.password,
+        creator.passwordHash
+    );
+
+    if (!validPassword) {
+        throw new Error("Invalid email or password");
+    }
+
+    const token = generateToken(creator.id);
+
+    return {
+        creator,
+        token,
+    };
 }
