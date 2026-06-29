@@ -20,7 +20,7 @@ export async function authMiddleware(
   const token = authHeader.replace("Bearer ", "");
 
   try {
-    const payload = verifyToken(token) as {
+    const payload = await verifyToken(token) as {
       creatorId: number;
     };
 
