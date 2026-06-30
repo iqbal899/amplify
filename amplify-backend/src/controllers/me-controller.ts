@@ -5,6 +5,8 @@ import { updateMeSchema } from "../validators/auth-validator";
 import { updateCreatorProfile } from "../services/me-service";
 import { getCreatorEnrollments } from "../services/me-service";
 
+import { getCreatorSubmissions } from "../services/me-service";
+
 export async function getMe(c: Context) {
     try {
         const creatorId = c.get("creatorId");
@@ -71,28 +73,56 @@ export async function updateMe(c: Context) {
 }
 
 export async function getMyEnrollments(
-  c: Context
+    c: Context
 ) {
-  const creatorId = c.get("creatorId");
+    const creatorId = c.get("creatorId");
 
-  try {
-    const enrollments =
-      await getCreatorEnrollments(creatorId);
+    try {
+        const enrollments =
+            await getCreatorEnrollments(creatorId);
 
-    return c.json({
-      success: true,
-      enrollments,
-    });
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Internal Server Error",
-      },
-      500
-    );
-  }
+        return c.json({
+            success: true,
+            enrollments,
+        });
+    } catch (error) {
+        return c.json(
+            {
+                success: false,
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Internal Server Error",
+            },
+            500
+        );
+    }
+}
+
+// Get all submissions for the logged-in creator
+export async function getMySubmissions(
+    c: Context
+) {
+    const creatorId = c.get("creatorId");
+
+    try {
+        const submissions =
+            await getCreatorSubmissions(creatorId);
+
+        return c.json({
+            success: true,
+            submissions,
+        });
+    } catch (error) {
+        return c.json(
+            {
+                success: false,
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Internal Server Error",
+            },
+            500
+        );
+    }
 }

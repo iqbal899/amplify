@@ -6,6 +6,8 @@ import { creators } from "../db/schema/creators";
 import { enrollments } from "../db/schema/enrollments";
 import { campaigns } from "../db/schema/campaigns";
 
+import { reelSubmissions } from "../db/schema/reel_submissions";
+
 export async function getCreatorProfile(
     creatorId: number
 ) {
@@ -68,22 +70,51 @@ export async function updateCreatorProfile(
 }
 
 export async function getCreatorEnrollments(
-  creatorId: number
+    creatorId: number
 ) {
-  return await db
-    .select({
-      enrollment: enrollments,
-      campaign: campaigns,
-    })
-    .from(enrollments)
-    .innerJoin(
-      campaigns,
-      eq(
-        enrollments.campaignId,
-        campaigns.id
-      )
-    )
-    .where(
-      eq(enrollments.creatorId, creatorId)
-    );
+    return await db
+        .select({
+            enrollment: enrollments,
+            campaign: campaigns,
+        })
+        .from(enrollments)
+        .innerJoin(
+            campaigns,
+            eq(
+                enrollments.campaignId,
+                campaigns.id
+            )
+        )
+        .where(
+            eq(enrollments.creatorId, creatorId)
+        );
+}
+
+// Get all submissions for a creator along with the campaign details
+export async function getCreatorSubmissions(
+    creatorId: number
+) {
+    return await db
+        .select({
+            submission: reelSubmissions,
+            campaign: campaigns,
+        })
+        .from(reelSubmissions)
+        .innerJoin(
+            enrollments,
+            eq(
+                reelSubmissions.enrollmentId,
+                enrollments.id
+            )
+        )
+        .innerJoin(
+            campaigns,
+            eq(
+                enrollments.campaignId,
+                campaigns.id
+            )
+        )
+        .where(
+            eq(enrollments.creatorId, creatorId)
+        );
 }
