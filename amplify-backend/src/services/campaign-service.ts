@@ -59,3 +59,4 @@ export async function getCampaignById(id: number) {
       campaign.spotsTotal - (campaign.spotsFilled ?? 0),
   };
 }
+
