@@ -3,6 +3,7 @@ import { getCreatorProfile } from "../services/me-service";
 
 import { updateMeSchema } from "../validators/auth-validator";
 import { updateCreatorProfile } from "../services/me-service";
+import { getCreatorEnrollments } from "../services/me-service";
 
 export async function getMe(c: Context) {
     try {
@@ -67,4 +68,31 @@ export async function updateMe(c: Context) {
             400
         );
     }
+}
+
+export async function getMyEnrollments(
+  c: Context
+) {
+  const creatorId = c.get("creatorId");
+
+  try {
+    const enrollments =
+      await getCreatorEnrollments(creatorId);
+
+    return c.json({
+      success: true,
+      enrollments,
+    });
+  } catch (error) {
+    return c.json(
+      {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Internal Server Error",
+      },
+      500
+    );
+  }
 }

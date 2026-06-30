@@ -3,6 +3,9 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/client";
 import { creators } from "../db/schema/creators";
 
+import { enrollments } from "../db/schema/enrollments";
+import { campaigns } from "../db/schema/campaigns";
+
 export async function getCreatorProfile(
     creatorId: number
 ) {
@@ -62,4 +65,25 @@ export async function updateCreatorProfile(
     }
 
     return creator;
+}
+
+export async function getCreatorEnrollments(
+  creatorId: number
+) {
+  return await db
+    .select({
+      enrollment: enrollments,
+      campaign: campaigns,
+    })
+    .from(enrollments)
+    .innerJoin(
+      campaigns,
+      eq(
+        enrollments.campaignId,
+        campaigns.id
+      )
+    )
+    .where(
+      eq(enrollments.creatorId, creatorId)
+    );
 }
