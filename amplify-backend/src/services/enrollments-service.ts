@@ -45,28 +45,28 @@ export async function enrollCampaign(
     throw new Error("You are already enrolled in this campaign");
   }
 
-  // return campaign;
+  // transaction to insert enrollment and update spotsFilled atomically
   const enrollment = await db.transaction(async (tx) => {
-  const [enrollment] = await tx
-    .insert(enrollments)
-    .values({
-      campaignId,
-      creatorId,
-    })
-    .returning();
+    const [enrollment] = await tx
+      .insert(enrollments)
+      .values({
+        campaignId,
+        creatorId,
+      })
+      .returning();
 
-  await tx
-    .update(campaigns)
-    .set({
-      spotsFilled: sql`${campaigns.spotsFilled} + 1`,
-    })
-    .where(eq(campaigns.id, campaignId));
+    await tx
+      .update(campaigns)
+      .set({
+        spotsFilled: sql`${campaigns.spotsFilled} + 1`,
+      })
+      .where(eq(campaigns.id, campaignId));
 
-  return enrollment;
-});
+    return enrollment;
+  });
 
-return {
-  message: "Enrolled successfully",
-  enrollment,
-};
+  return {
+    message: "Enrolled successfully",
+    enrollment,
+  };
 }

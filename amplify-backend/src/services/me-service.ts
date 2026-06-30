@@ -8,6 +8,8 @@ import { campaigns } from "../db/schema/campaigns";
 
 import { reelSubmissions } from "../db/schema/reel_submissions";
 
+import { payouts } from "../db/schema/payouts";
+
 export async function getCreatorProfile(
     creatorId: number
 ) {
@@ -116,5 +118,41 @@ export async function getCreatorSubmissions(
         )
         .where(
             eq(enrollments.creatorId, creatorId)
+        );
+}
+
+// Get all payouts for a creator along with the campaign details
+export async function getCreatorPayouts(
+    creatorId: number
+) {
+    return await db
+        .select({
+            payout: payouts,
+            campaign: campaigns,
+        })
+        .from(payouts)
+        .innerJoin(
+            reelSubmissions,
+            eq(
+                payouts.submissionId,
+                reelSubmissions.id
+            )
+        )
+        .innerJoin(
+            enrollments,
+            eq(
+                reelSubmissions.enrollmentId,
+                enrollments.id
+            )
+        )
+        .innerJoin(
+            campaigns,
+            eq(
+                enrollments.campaignId,
+                campaigns.id
+            )
+        )
+        .where(
+            eq(payouts.creatorId, creatorId)
         );
 }

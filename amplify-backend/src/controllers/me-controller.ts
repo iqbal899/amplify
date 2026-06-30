@@ -7,6 +7,8 @@ import { getCreatorEnrollments } from "../services/me-service";
 
 import { getCreatorSubmissions } from "../services/me-service";
 
+import { getCreatorPayouts } from "../services/me-service";
+
 export async function getMe(c: Context) {
     try {
         const creatorId = c.get("creatorId");
@@ -112,6 +114,31 @@ export async function getMySubmissions(
         return c.json({
             success: true,
             submissions,
+        });
+    } catch (error) {
+        return c.json(
+            {
+                success: false,
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Internal Server Error",
+            },
+            500
+        );
+    }
+}
+
+// Get all payouts for the logged-in creator
+export async function getMyPayouts(c: Context) {
+    const creatorId = c.get("creatorId");
+
+    try {
+        const payouts = await getCreatorPayouts(creatorId);
+
+        return c.json({
+            success: true,
+            payouts,
         });
     } catch (error) {
         return c.json(
