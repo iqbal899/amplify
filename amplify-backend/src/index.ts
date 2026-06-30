@@ -3,6 +3,8 @@ import { Hono } from "hono";
 import authRoutes from "./routes/auth";
 import meRoutes from "./routes/me";
 import campaignRoutes from "./routes/campaigns";
+import enrollmentRoutes from "./routes/enrollments";
+
 
 const app = new Hono();
 
@@ -15,5 +17,6 @@ app.get("/health", (c) => {
 app.route("/auth", authRoutes);
 app.route("/me", meRoutes);
 app.route("/campaigns", campaignRoutes);
+app.route("/enrollments", enrollmentRoutes);
 
 export default app;
