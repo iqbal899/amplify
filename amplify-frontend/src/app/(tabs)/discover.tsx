@@ -41,7 +41,7 @@ const FILTER_OPTIONS = [
 
 export default function DiscoverScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { creator } = useAuthStore();
   const { themeMode, setThemeMode } = useThemeStore();
   const colors = useTheme();
   const styles = useStyles(getStyles);
@@ -54,7 +54,7 @@ export default function DiscoverScreen() {
     loadCampaigns();
   }, []);
 
-  const userName = user?.name || 'Creator';
+  const userName = creator?.name || 'Creator';
 
   const featuredCampaign = useMemo(() => {
     if (!campaigns.length) return undefined;

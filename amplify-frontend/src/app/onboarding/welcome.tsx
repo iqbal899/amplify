@@ -174,7 +174,7 @@ export default function WelcomeScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
 
   const handleContinue = () => {
-    router.push('/onboarding/connect-instagram');
+    router.push("/onboarding/login");
   };
 
   const handleScroll = (event: any) => {
