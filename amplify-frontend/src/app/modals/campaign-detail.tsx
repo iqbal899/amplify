@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/preserve-manual-memoization */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   ScrollView,
@@ -12,31 +12,48 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { X, Play, Pause } from 'lucide-react-native';
 import { spacing, radius, fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useCampaignStore } from '@/store/campaignStore';
+
+import { getCampaignById } from "@/services/campaigns";
+
 import { useAudioStore } from '@/store/audioStore';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
 import { AudioWaveform } from '@/components/ui/AudioWaveform';
 import { MilestoneTable } from '@/components/ui/MilestoneTable';
 import { RulesCard } from '@/components/ui/RulesCard';
 import { PlatformBadge } from '@/components/ui/PlatformBadge';
-import type { Track } from '@/types';
+import type { Campaign, Track } from '@/types';
 
 export default function CampaignDetail() {
   const router = useRouter();
   const colors = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getCampaignById, getEnrolledByCampaignId, enrollInCampaign } =
-    useCampaignStore();
+
   const { currentTrack, isPlaying } = useAudioStore();
   const { playTrack, pauseTrack } = useAudioPlayback();
   const [enrollmentLoading, setEnrollmentLoading] = useState(false);
   const [showEnrollmentSuccess, setShowEnrollmentSuccess] = useState(false);
 
-  const campaign = useMemo(() => getCampaignById(id || ''), [id, getCampaignById]);
-  const isEnrolled = useMemo(
-    () => getEnrolledByCampaignId(id || ''),
-    [id, getEnrolledByCampaignId]
-  );
+  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    async function loadCampaign() {
+      if (!id) return;
+
+      try {
+        const data = await getCampaignById(id as string);
+        setCampaign(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCampaign();
+  }, [id]);
+
+  const isEnrolled = false;
+
   const isCampaignFull = useMemo(
     () => campaign?.spotsFilled === campaign?.spotsTotal,
     [campaign?.spotsFilled, campaign?.spotsTotal]
@@ -82,15 +99,15 @@ export default function CampaignDetail() {
   };
 
   const handleEnroll = async () => {
-    if (!campaign?.id) return;
-
     setEnrollmentLoading(true);
+
     try {
-      await enrollInCampaign(campaign.id);
+      console.log("Enroll API coming next...");
       setShowEnrollmentSuccess(true);
-      setTimeout(() => setShowEnrollmentSuccess(false), 2000);
-    } catch (error) {
-      console.error('Enrollment failed:', error);
+
+      setTimeout(() => {
+        setShowEnrollmentSuccess(false);
+      }, 2000);
     } finally {
       setEnrollmentLoading(false);
     }
@@ -102,7 +119,19 @@ export default function CampaignDetail() {
       params: { campaignId: campaign?.id },
     });
   };
-
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
   if (!campaign) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>

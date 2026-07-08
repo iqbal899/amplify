@@ -78,3 +78,33 @@ export async function getCampaign(id: string) {
     isNew: false,
   };
 }
+// services/campaigns.ts
+
+export async function getCampaignById(id: string) {
+  const response = await api.get(`/campaigns/${id}`);
+
+  const campaign = response.data.campaign;
+
+  return {
+    id: campaign.id.toString(),
+    trackName: campaign.trackName,
+    artistName: campaign.artistName,
+    albumArt: campaign.albumArt ?? "",
+    previewUrl: campaign.previewUrl ?? "",
+    spotifyTrackId: campaign.spotifyTrackId,
+    genre: campaign.genre,
+    language: campaign.language,
+    pool: Number(campaign.rewardPool),
+    spotsTotal: campaign.spotsTotal,
+    spotsFilled: campaign.spotsFilled,
+    endsAt: campaign.endsAt,
+    milestones: campaign.milestones,
+    status:
+      campaign.status === "closed"
+        ? "ended"
+        : campaign.status,
+    description: campaign.description,
+    isTrending: false,
+    isNew: false,
+  };
+}
