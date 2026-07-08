@@ -3,25 +3,78 @@ import { api } from "./api";
 export async function getCampaigns() {
   const response = await api.get("/campaigns");
 
-  return response.data;
+  return response.data.campaigns.map((campaign: any) => ({
+    id: campaign.id.toString(),
+
+    trackName: campaign.trackName,
+    artistName: campaign.artistName,
+
+    albumArt: campaign.albumArt ?? "",
+    previewUrl: campaign.previewUrl ?? "",
+
+    spotifyTrackId: campaign.spotifyTrackId,
+
+    genre: campaign.genre,
+    language: campaign.language,
+
+    pool: Number(campaign.rewardPool),
+
+    spotsTotal: campaign.spotsTotal,
+    spotsFilled: campaign.spotsFilled,
+
+    endsAt: campaign.endsAt,
+
+    milestones: campaign.milestones,
+
+    status:
+      campaign.status === "closed"
+        ? "ended"
+        : campaign.status,
+
+    description: campaign.description,
+
+    // Frontend-only fields
+    isTrending: false,
+    isNew: false,
+  }));
 }
 
-export async function getCampaign(id: number) {
+export async function getCampaign(id: string) {
   const response = await api.get(`/campaigns/${id}`);
 
-  return response.data;
-}
+  const campaign = response.data.campaign;
 
-export async function enrollCampaign(id: number, token: string) {
-  const response = await api.post(
-    `/campaigns/${id}/enroll`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  return {
+    id: campaign.id.toString(),
 
-  return response.data;
+    trackName: campaign.trackName,
+    artistName: campaign.artistName,
+
+    albumArt: campaign.albumArt ?? "",
+    previewUrl: campaign.previewUrl ?? "",
+
+    spotifyTrackId: campaign.spotifyTrackId,
+
+    genre: campaign.genre,
+    language: campaign.language,
+
+    pool: Number(campaign.rewardPool),
+
+    spotsTotal: campaign.spotsTotal,
+    spotsFilled: campaign.spotsFilled,
+
+    endsAt: campaign.endsAt,
+
+    milestones: campaign.milestones,
+
+    status:
+      campaign.status === "closed"
+        ? "ended"
+        : campaign.status,
+
+    description: campaign.description,
+
+    isTrending: false,
+    isNew: false,
+  };
 }

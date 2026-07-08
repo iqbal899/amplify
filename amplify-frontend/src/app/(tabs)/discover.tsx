@@ -1,5 +1,7 @@
 /* eslint-disable react-hooks/purity */
 import React, { useMemo, useState } from 'react';
+import { useEffect } from "react";
+
 import {
   View,
   Text,
@@ -43,15 +45,21 @@ export default function DiscoverScreen() {
   const { themeMode, setThemeMode } = useThemeStore();
   const colors = useTheme();
   const styles = useStyles(getStyles);
-  const { campaigns, enrolled } = useCampaignStore();
+  const { campaigns, enrolled, loadCampaigns } = useCampaignStore();
   const { currentTrack, isPlaying } = useAudioStore();
   const { playTrack, pauseTrack, resumeTrack } = useAudioPlayback();
   const [activeFilter, setActiveFilter] = useState('All');
 
+  useEffect(() => {
+    loadCampaigns();
+  }, []);
+
   const userName = user?.name || 'Creator';
 
   const featuredCampaign = useMemo(() => {
-    return campaigns.find((c) => c.isTrending);
+    if (!campaigns.length) return undefined;
+
+    return campaigns[0];
   }, [campaigns]);
 
   const isEnrolledIn = (campaignId: string) => {
@@ -83,7 +91,7 @@ export default function DiscoverScreen() {
       else resumeTrack();
     } else {
       playTrack({
-        id: featuredCampaign.id,
+        id: featuredCampaign.id.toString(),
         trackName: featuredCampaign.trackName,
         artistName: featuredCampaign.artistName,
         albumArt: featuredCampaign.albumArt,
@@ -94,20 +102,24 @@ export default function DiscoverScreen() {
   };
 
   const handleViewCampaign = () => {
-    if (featuredCampaign) {
-      router.push({
-        pathname: '/modals/campaign-detail' as const,
-        params: { id: featuredCampaign.id },
-      });
-    }
-  };
+  if (!featuredCampaign) return;
 
-  const handleCampaignPress = (campaignId: string) => {
-    router.push({
-      pathname: '/modals/campaign-detail' as const,
-      params: { id: campaignId },
-    });
-  };
+  router.push({
+    pathname: "/modals/campaign-detail",
+    params: {
+      id: featuredCampaign.id.toString(),
+    },
+  });
+};
+
+  const handleCampaignPress = (campaignId: number | string) => {
+  router.push({
+    pathname: "/modals/campaign-detail",
+    params: {
+      id: campaignId.toString(),
+    },
+  });
+};
 
   const handleEnrolledPress = () => {
     router.navigate('/(tabs)/my-campaigns');
@@ -254,8 +266,8 @@ export default function DiscoverScreen() {
             renderItem={({ item }: { item: Campaign }) => (
               <CampaignCard
                 campaign={item}
-                isEnrolled={isEnrolledIn(item.id)}
-                onPress={() => handleCampaignPress(item.id)}
+                isEnrolled={isEnrolledIn(item.id.toString())}
+                onPress={() => handleCampaignPress(item.id.toString())}
               />
             )}
             scrollEnabled={false}
