@@ -30,11 +30,11 @@ export default function MyCampaignsScreen() {
 
 
   const {
-    enrolled,
-    completed,
-    getCampaignById,
-  } = useCampaignStore();
-
+  enrolled,
+  completed,
+  getCampaignById,
+  getSubmissionByCampaignId,
+} = useCampaignStore();
 
   console.log("Enrolled:", enrolled);
 
@@ -46,11 +46,16 @@ export default function MyCampaignsScreen() {
     (s) => s.loadCampaigns
   );
 
+  const loadSubmissions = useCampaignStore(
+  (s) => s.loadSubmissions
+);
+
   useFocusEffect(
     useCallback(() => {
       async function init() {
         await loadCampaigns();
         await loadEnrollments();
+        await loadSubmissions();
       }
 
       init();
@@ -129,9 +134,49 @@ export default function MyCampaignsScreen() {
     }
   }, [activeFilter, enrolled, completed, getCampaignById, now]);
 
+
+  // const handleCampaignPress = (campaignId: number) => {
+  //   router.push(`/modals/submit-reel?campaignId=${campaignId}`);
+  // };
+  console.log(
+  "Submissions:",
+  useCampaignStore.getState().submissions
+);
   const handleCampaignPress = (campaignId: number) => {
-    router.push(`/modals/submit-reel?campaignId=${campaignId}`);
-  };
+  console.log(
+    "All submissions:",
+    useCampaignStore.getState().submissions
+  );
+
+  const submission =
+    getSubmissionByCampaignId(campaignId);
+
+  console.log(
+    "Submission for campaign:",
+    campaignId,
+    submission
+  );
+
+  if (submission) {
+    console.log("Going to View Submission");
+
+    router.push({
+      pathname: "/modals/view-submission",
+      params: {
+        campaignId: campaignId.toString(),
+      },
+    });
+  } else {
+    console.log("Going to Submit Reel");
+
+    router.push({
+      pathname: "/modals/submit-reel",
+      params: {
+        campaignId: campaignId.toString(),
+      },
+    });
+  }
+};
 
   const handleDiscoverPress = () => {
     router.push('/(tabs)/discover');

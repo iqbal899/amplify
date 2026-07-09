@@ -77,6 +77,13 @@ export default function RootLayout() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="modals/view-submission"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+          }}
+        />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </GestureHandlerRootView>
