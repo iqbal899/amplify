@@ -2,7 +2,6 @@ import { api } from "./api";
 
 export async function submitReel(
   enrollmentId: number,
-  token: string,
   reelUrl: string,
   platform: "instagram" | "youtube"
 ) {
@@ -11,11 +10,6 @@ export async function submitReel(
     {
       reelUrl,
       platform,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     }
   );
 

@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, radius, fonts } from '@/constants/theme';
 import { useCampaignStore } from '@/store/campaignStore';
+import { submitReel as submitReelApi } from "@/services/submissions";
 import { useAuthStore } from '@/store/authStore';
 import { PlatformBadge } from '@/components/ui/PlatformBadge';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,10 +25,21 @@ const SubmitReelModal: React.FC = () => {
   const router = useRouter();
   const { campaignId } = useLocalSearchParams<{ campaignId: string }>();
   const getCampaignById = useCampaignStore((state) => state.getCampaignById);
-  const submitReel = useCampaignStore((state) => state.submitReel);
-  const instagramUsername = useAuthStore((state) => state.instagramUsername);
+  //const submitReel = useCampaignStore((state) => state.submitReel);
+  const getEnrolledByCampaignId = useCampaignStore(
+    (state) => state.getEnrolledByCampaignId
+  );
 
-  const campaign = campaignId ? getCampaignById(campaignId) : null;
+  const enrollment =
+    campaignId
+      ? getEnrolledByCampaignId(Number(campaignId))
+      : undefined;
+
+  const creator = useAuthStore((state) => state.creator);
+
+  const instagramUsername = creator?.instagramUsername;
+
+  const campaign = campaignId ? getCampaignById(Number(campaignId)) : null;
 
   const [url, setUrl] = useState('');
   const [isInstructionsExpanded, setIsInstructionsExpanded] = useState(false);
@@ -40,6 +52,7 @@ const SubmitReelModal: React.FC = () => {
   const instructionsHeight = useRef(new Animated.Value(0)).current;
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const confettiRef = useRef<any>(null);
+
 
   // URL validation logic
   const validateUrl = (text: string): { isValid: boolean; platform: Platform; error: string | null } => {
@@ -99,7 +112,17 @@ const SubmitReelModal: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Submit reel
-      await submitReel(campaignId, url, platform);
+      if (!enrollment) {
+        throw new Error("Enrollment not found");
+      }
+
+      await submitReelApi(
+        enrollment.id,
+        url,
+        platform
+      );
+
+      await loadEnrollments();
 
       // Show success state
       setIsSuccess(true);
@@ -126,6 +149,10 @@ const SubmitReelModal: React.FC = () => {
       Alert.alert('Error', 'Failed to submit reel. Please try again.');
     }
   };
+
+  const loadEnrollments = useCampaignStore(
+    (state) => state.loadEnrollments
+  );
 
   const isSubmitDisabled = !url || platform === null || !isCheckboxChecked || isLoading;
 
@@ -253,7 +280,11 @@ const SubmitReelModal: React.FC = () => {
                 fontFamily: fonts.body,
                 paddingVertical: spacing.sm,
               }}
-              placeholder="Paste your reel URL here..."
+              placeholder={
+                instagramUsername
+                  ? "Paste your Instagram Reel URL..."
+                  : "Paste your Reel URL..."
+              }
               placeholderTextColor={colors.textMuted}
               value={url}
               onChangeText={handleUrlChange}

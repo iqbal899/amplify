@@ -68,6 +68,7 @@ export const useCampaignStore = create<CampaignState>()(
           console.log("API RESPONSE:", response);
 
           const enrollments = response.map((item: any) => ({
+            id: item.enrollment.id,
             campaignId: item.campaign.id,
 
             submittedUrl: "",
@@ -118,6 +119,7 @@ export const useCampaignStore = create<CampaignState>()(
           enrolled: [
             ...state.enrolled,
             {
+              id : -1, // Temporary ID until the backend provides a real one
               campaignId,
 
               submittedUrl: "",

@@ -46,16 +46,16 @@ export default function MyCampaignsScreen() {
     (s) => s.loadCampaigns
   );
 
- useFocusEffect(
-  useCallback(() => {
-    async function init() {
-      await loadCampaigns();
-      await loadEnrollments();
-    }
+  useFocusEffect(
+    useCallback(() => {
+      async function init() {
+        await loadCampaigns();
+        await loadEnrollments();
+      }
 
-    init();
-  }, [])
-);
+      init();
+    }, [])
+  );
 
   // Get current timestamp
   const now = new Date();
@@ -130,7 +130,7 @@ export default function MyCampaignsScreen() {
   }, [activeFilter, enrolled, completed, getCampaignById, now]);
 
   const handleCampaignPress = (campaignId: number) => {
-    router.push(`/modals/campaign-detail?id=${campaignId}`);
+    router.push(`/modals/submit-reel?campaignId=${campaignId}`);
   };
 
   const handleDiscoverPress = () => {
