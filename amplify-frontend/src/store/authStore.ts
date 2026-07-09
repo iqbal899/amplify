@@ -7,8 +7,10 @@ export interface Creator {
   name: string;
   email: string;
   phone: string | null;
-  avatarUrl?: string | null;
-  createdAt?: string;
+  instagramUsername: string | null;
+  profileImage: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface AuthState {
@@ -21,6 +23,8 @@ interface AuthState {
   login: (creator: Creator, token: string) => void;
 
   logout: () => void;
+
+   setCreator: (creator: Creator) => void;
 
   updateCreator: (data: Partial<Creator>) => void;
 }
@@ -48,6 +52,10 @@ export const useAuthStore = create<AuthState>()(
           token: null,
         }),
 
+        setCreator: (creator) =>
+    set({
+        creator,
+    }),
       updateCreator: (data) =>
         set((state) => ({
           creator: state.creator

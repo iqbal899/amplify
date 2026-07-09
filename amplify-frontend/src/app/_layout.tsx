@@ -70,6 +70,13 @@ export default function RootLayout() {
           options={{ presentation: 'modal', headerShown: false }}
         />
         <Stack.Screen name="+not-found" />
+        <Stack.Screen
+          name="modals/edit-profile"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+          }}
+        />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </GestureHandlerRootView>

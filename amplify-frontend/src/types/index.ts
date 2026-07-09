@@ -31,11 +31,13 @@ export interface MilestoneHit {
 }
 
 export interface EnrolledCampaign {
+  id: number;              // enrollment id
   campaignId: number;
+
   submittedUrl: string;
-  platform: 'instagram' | 'youtube';
+  platform: "instagram" | "youtube";
   submittedAt: string;
-  verificationStatus: 'pending' | 'verified' | 'rejected';
+  verificationStatus: "pending" | "verified" | "rejected";
   rejectionReason?: string;
   currentViews: number;
   milestonesHit: MilestoneHit[];
