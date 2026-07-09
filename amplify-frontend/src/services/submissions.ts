@@ -15,3 +15,8 @@ export async function submitReel(
 
   return response.data;
 }
+export async function getMySubmissions() {
+  const response = await api.get("/me/submissions");
+
+  return response.data.submissions;
+}

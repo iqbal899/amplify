@@ -439,6 +439,93 @@ const settingsItems = [
           </TouchableOpacity>
         </View>
       </View>
+      {/* Settings */}
+
+<View
+  style={{
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
+  }}
+>
+  <Text
+    style={{
+      fontSize: 16,
+      fontFamily: fonts.displayMedium,
+      color: colors.text,
+      marginBottom: spacing.md,
+    }}
+  >
+    Settings
+  </Text>
+
+  <View
+    style={{
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      overflow: "hidden",
+    }}
+  >
+    {settingsItems.map((item, index) => {
+      const Icon = item.icon;
+
+      return (
+        <TouchableOpacity
+          key={item.id}
+          onPress={() =>
+            handleSettingPress(item.id)
+          }
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: spacing.lg,
+            borderBottomWidth:
+              index === settingsItems.length - 1
+                ? 0
+                : 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
+            <Icon
+              size={20}
+              color={
+                item.isRed
+                  ? "#EF4444"
+                  : colors.text
+              }
+            />
+
+            <Text
+              style={{
+                marginLeft: spacing.md,
+                fontSize: 16,
+                color: item.isRed
+                  ? "#EF4444"
+                  : colors.text,
+                fontFamily: fonts.body,
+              }}
+            >
+              {item.label}
+            </Text>
+          </View>
+
+          {!item.isRed && (
+            <ChevronRight
+              size={18}
+              color={colors.textMuted}
+            />
+          )}
+        </TouchableOpacity>
+      );
+    })}
+  </View>
+</View>
     </ScrollView>
   </SafeAreaView>
   );

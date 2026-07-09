@@ -59,6 +59,27 @@ export interface CompletedCampaign {
   allMilestonesHit: boolean;
 }
 
+export interface Submission {
+  id: number;
+
+  enrollmentId: number;
+
+  campaignId: number;
+
+  reelUrl: string;
+
+  platform: "instagram" | "youtube";
+
+  submittedAt: string;
+
+  verificationStatus:
+  | "pending"
+  | "verified"
+  | "rejected";
+
+  currentViews: number;
+}
+
 export interface Transaction {
   id: string;
   campaignId: number;

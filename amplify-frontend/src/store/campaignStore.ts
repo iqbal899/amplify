@@ -6,6 +6,7 @@ import type {
   Campaign,
   EnrolledCampaign,
   CompletedCampaign,
+  Submission,
 } from "@/types";
 
 // import {
@@ -16,11 +17,13 @@ import type {
 
 import { getCampaigns } from "@/services/campaigns";
 import { getMyEnrollments } from "@/services/enrollments";
+import { getMySubmissions } from "@/services/submissions";
 
 interface CampaignState {
   campaigns: Campaign[];
   enrolled: EnrolledCampaign[];
   completed: CompletedCampaign[];
+  submissions: Submission[];
 
   loadCampaigns: () => Promise<void>;
   loadEnrollments: () => Promise<void>;
@@ -38,6 +41,12 @@ interface CampaignState {
   getEnrolledByCampaignId: (
     id: number
   ) => EnrolledCampaign | undefined;
+
+  loadSubmissions: () => Promise<void>;
+
+  getSubmissionByCampaignId: (
+    campaignId: number
+  ) => Submission | undefined;
 }
 
 export const useCampaignStore = create<CampaignState>()(
@@ -46,7 +55,7 @@ export const useCampaignStore = create<CampaignState>()(
       campaigns: [],
       enrolled: [],
       completed: [],
-
+      submissions: [],
       loadCampaigns: async () => {
         try {
           const campaigns = await getCampaigns();
@@ -105,6 +114,40 @@ export const useCampaignStore = create<CampaignState>()(
           console.log(err);
         }
       },
+      loadSubmissions: async () => {
+        try {
+          console.log("Loading submissions...");
+
+          const response = await getMySubmissions();
+
+          console.log("SUBMISSION API:", response);
+
+          const submissions = response.map((item: any) => ({
+            id: item.submission.id,
+            enrollmentId: item.submission.enrollmentId,
+            campaignId: item.campaign.id,
+            reelUrl: item.submission.reelUrl,
+            platform: item.submission.platform,
+            submittedAt: item.submission.submittedAt,
+            verificationStatus: item.submission.verificationStatus,
+            currentViews: item.submission.currentViews,
+          }));
+
+          console.log("Mapped submissions:", submissions);
+
+          set({
+            submissions,
+          });
+
+          console.log(
+            "Store submissions:",
+            useCampaignStore.getState().submissions
+          );
+        } catch (err) {
+          console.log("LOAD SUBMISSIONS ERROR");
+          console.log(err);
+        }
+      },
       enrollInCampaign: (campaignId) =>
         set((state) => ({
           campaigns: state.campaigns.map((c) =>
@@ -119,7 +162,7 @@ export const useCampaignStore = create<CampaignState>()(
           enrolled: [
             ...state.enrolled,
             {
-              id : -1, // Temporary ID until the backend provides a real one
+              id: -1, // Temporary ID until the backend provides a real one
               campaignId,
 
               submittedUrl: "",
@@ -159,6 +202,11 @@ export const useCampaignStore = create<CampaignState>()(
 
       getEnrolledByCampaignId: (id) =>
         get().enrolled.find((e) => e.campaignId === id),
+
+      getSubmissionByCampaignId: (campaignId) =>
+        get().submissions.find(
+          (s) => s.campaignId === campaignId
+        ),
     }),
     {
       name: "doorbeen-campaigns-v2",
