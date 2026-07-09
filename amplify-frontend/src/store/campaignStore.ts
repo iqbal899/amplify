@@ -8,13 +8,14 @@ import type {
   CompletedCampaign,
 } from "@/types";
 
-import {
-  mockCampaigns,
-  mockEnrolled,
-  mockCompleted,
-} from "./mockData";
+// import {
+//   mockCampaigns,
+//   mockEnrolled,
+//   mockCompleted,
+// } from "./mockData";
 
 import { getCampaigns } from "@/services/campaigns";
+import { getMyEnrollments } from "@/services/enrollments";
 
 interface CampaignState {
   campaigns: Campaign[];
@@ -22,30 +23,29 @@ interface CampaignState {
   completed: CompletedCampaign[];
 
   loadCampaigns: () => Promise<void>;
+  loadEnrollments: () => Promise<void>;
 
-  enrollInCampaign: (campaignId: string) => void;
+  enrollInCampaign: (campaignId: number) => void;
 
   submitReel: (
-    campaignId: string,
+    campaignId: number,
     url: string,
     platform: "instagram" | "youtube"
   ) => void;
 
-  getCampaignById: (id: string) => Campaign | undefined;
+  getCampaignById: (id: number) => Campaign | undefined;
 
   getEnrolledByCampaignId: (
-    id: string
+    id: number
   ) => EnrolledCampaign | undefined;
 }
 
 export const useCampaignStore = create<CampaignState>()(
   persist(
     (set, get) => ({
-      campaigns: mockCampaigns,
-
-      enrolled: mockEnrolled,
-
-      completed: mockCompleted,
+      campaigns: [],
+      enrolled: [],
+      completed: [],
 
       loadCampaigns: async () => {
         try {
@@ -59,14 +59,59 @@ export const useCampaignStore = create<CampaignState>()(
         }
       },
 
+      loadEnrollments: async () => {
+        try {
+          console.log("Loading enrollments...");
+
+          const response = await getMyEnrollments();
+
+          console.log("API RESPONSE:", response);
+
+          const enrollments = response.map((item: any) => ({
+            campaignId: item.campaign.id,
+
+            submittedUrl: "",
+
+            platform: "instagram",
+
+            submittedAt: item.enrollment.enrolledAt,
+
+            verificationStatus:
+              item.enrollment.status === "active"
+                ? "pending"
+                : "verified",
+
+            currentViews: 0,
+
+            milestonesHit: [],
+
+            earned: 0,
+          }));
+
+          console.log("Mapped:", enrollments);
+
+          set({
+            enrolled: enrollments,
+          });
+          console.log(
+            "STORE LENGTH:",
+            useCampaignStore.getState().enrolled.length
+          );
+
+          console.log("Store Updated");
+        } catch (err) {
+          console.log("LOAD ENROLLMENTS ERROR");
+          console.log(err);
+        }
+      },
       enrollInCampaign: (campaignId) =>
         set((state) => ({
           campaigns: state.campaigns.map((c) =>
             c.id === campaignId
               ? {
-                  ...c,
-                  spotsFilled: c.spotsFilled + 1,
-                }
+                ...c,
+                spotsFilled: c.spotsFilled + 1,
+              }
               : c
           ),
 
@@ -97,12 +142,12 @@ export const useCampaignStore = create<CampaignState>()(
           enrolled: state.enrolled.map((e) =>
             e.campaignId === campaignId
               ? {
-                  ...e,
-                  submittedUrl: url,
-                  platform,
-                  submittedAt: new Date().toISOString(),
-                  verificationStatus: "pending",
-                }
+                ...e,
+                submittedUrl: url,
+                platform,
+                submittedAt: new Date().toISOString(),
+                verificationStatus: "pending",
+              }
               : e
           ),
         })),

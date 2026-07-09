@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Text,
   Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -22,6 +23,9 @@ import { MilestoneTable } from '@/components/ui/MilestoneTable';
 import { RulesCard } from '@/components/ui/RulesCard';
 import { PlatformBadge } from '@/components/ui/PlatformBadge';
 import type { Campaign, Track } from '@/types';
+import { enrollCampaign } from '@/services/enrollments';
+
+import { useCampaignStore } from "@/store/campaignStore";
 
 export default function CampaignDetail() {
   const router = useRouter();
@@ -33,14 +37,22 @@ export default function CampaignDetail() {
   const [enrollmentLoading, setEnrollmentLoading] = useState(false);
   const [showEnrollmentSuccess, setShowEnrollmentSuccess] = useState(false);
 
+  const loadCampaigns = useCampaignStore((s) => s.loadCampaigns);
+  const loadEnrollments = useCampaignStore((s) => s.loadEnrollments);
+
   const [campaign, setCampaign] = useState<Campaign | null>(null);
+
+  const getEnrolledByCampaignId = useCampaignStore(
+    (s) => s.getEnrolledByCampaignId
+  );
+
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     async function loadCampaign() {
       if (!id) return;
 
       try {
-        const data = await getCampaignById(id as string);
+        const data = await getCampaignById(Number(id));
         setCampaign(data);
       } catch (error) {
         console.error(error);
@@ -49,10 +61,25 @@ export default function CampaignDetail() {
       }
     }
 
+
     loadCampaign();
   }, [id]);
 
-  const isEnrolled = false;
+  useEffect(() => {
+    async function init() {
+      await loadEnrollments();
+    }
+
+    init();
+  }, []);
+
+  // const [isEnrolled, setIsEnrolled] = useState(false);
+  const enrolledCampaign =
+    campaign
+      ? getEnrolledByCampaignId(Number(campaign.id))
+      : undefined;
+
+  const isEnrolled = !!enrolledCampaign;
 
   const isCampaignFull = useMemo(
     () => campaign?.spotsFilled === campaign?.spotsTotal,
@@ -99,15 +126,27 @@ export default function CampaignDetail() {
   };
 
   const handleEnroll = async () => {
+    if (!campaign?.id) return;
+
     setEnrollmentLoading(true);
 
     try {
-      console.log("Enroll API coming next...");
+      await enrollCampaign(Number(campaign.id));
+
+      // setIsEnrolled(true);
       setShowEnrollmentSuccess(true);
 
-      setTimeout(() => {
-        setShowEnrollmentSuccess(false);
-      }, 2000);
+      await loadCampaigns();
+      await loadEnrollments();
+
+      // setTimeout(() => {
+      //   router.back();
+      // }, 1200);
+    } catch (err: any) {
+      Alert.alert(
+        'Enrollment Failed',
+        err.response?.data?.message ?? 'Something went wrong.'
+      );
     } finally {
       setEnrollmentLoading(false);
     }
@@ -478,20 +517,20 @@ export default function CampaignDetail() {
 
         {isCampaignFull ? (
           <TouchableOpacity
+            disabled
             style={{
               borderWidth: 1.5,
               borderColor: colors.surfaceElevated,
               paddingVertical: spacing.md,
               borderRadius: radius.full,
-              alignItems: 'center',
+              alignItems: "center",
             }}
-            disabled
           >
             <Text
               style={{
                 fontFamily: fonts.display,
                 fontSize: 14,
-                fontWeight: '700',
+                fontWeight: "700",
                 color: colors.textMuted,
               }}
             >
@@ -505,14 +544,14 @@ export default function CampaignDetail() {
               backgroundColor: colors.blue,
               paddingVertical: spacing.md,
               borderRadius: radius.full,
-              alignItems: 'center',
+              alignItems: "center",
             }}
           >
             <Text
               style={{
                 fontFamily: fonts.display,
                 fontSize: 14,
-                fontWeight: '700',
+                fontWeight: "700",
                 color: colors.text,
               }}
             >
@@ -527,7 +566,7 @@ export default function CampaignDetail() {
               backgroundColor: colors.blue,
               paddingVertical: spacing.md,
               borderRadius: radius.full,
-              alignItems: 'center',
+              alignItems: "center",
               opacity: enrollmentLoading ? 0.6 : 1,
             }}
           >
@@ -535,11 +574,13 @@ export default function CampaignDetail() {
               style={{
                 fontFamily: fonts.display,
                 fontSize: 14,
-                fontWeight: '700',
+                fontWeight: "700",
                 color: colors.text,
               }}
             >
-              {enrollmentLoading ? 'Enrolling...' : 'Enroll & Get Audio Link'}
+              {enrollmentLoading
+                ? "Enrolling..."
+                : "Enroll & Get Audio Link"}
             </Text>
           </TouchableOpacity>
         )}
@@ -547,3 +588,4 @@ export default function CampaignDetail() {
     </SafeAreaView>
   );
 }
+

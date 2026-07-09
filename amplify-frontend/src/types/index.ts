@@ -6,7 +6,7 @@ export interface Milestone {
 }
 
 export interface Campaign {
-  id: string;
+  id: number;
   trackName: string;
   artistName: string;
   albumArt: string;
@@ -31,7 +31,7 @@ export interface MilestoneHit {
 }
 
 export interface EnrolledCampaign {
-  campaignId: string;
+  campaignId: number;
   submittedUrl: string;
   platform: 'instagram' | 'youtube';
   submittedAt: string;
@@ -43,7 +43,7 @@ export interface EnrolledCampaign {
 }
 
 export interface CompletedCampaign {
-  campaignId: string;
+  campaignId: number;
   trackName: string;
   artistName: string;
   albumArt: string;
@@ -59,7 +59,7 @@ export interface CompletedCampaign {
 
 export interface Transaction {
   id: string;
-  campaignId: string;
+  campaignId: number;
   trackName: string;
   milestone: number;
   amount: number;
@@ -76,7 +76,7 @@ export interface MonthlyEarning {
 }
 
 export interface Track {
-  id: string;
+  id: number;
   trackName: string;
   artistName: string;
   albumArt: string;
@@ -85,7 +85,7 @@ export interface Track {
 }
 
 export interface AchievementBadge {
-  id: string;
+  id: number;
   name: string;
   description: string;
   icon: string;

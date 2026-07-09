@@ -1,4 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useFocusEffect } from "expo-router";
+
+import { useCallback } from "react";
 import {
   View,
   Text,
@@ -25,11 +28,34 @@ export default function MyCampaignsScreen() {
   const styles = getStyles(colors);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('active');
 
+
   const {
     enrolled,
     completed,
     getCampaignById,
   } = useCampaignStore();
+
+
+  console.log("Enrolled:", enrolled);
+
+  const loadEnrollments = useCampaignStore(
+    (s) => s.loadEnrollments
+  );
+
+  const loadCampaigns = useCampaignStore(
+    (s) => s.loadCampaigns
+  );
+
+ useFocusEffect(
+  useCallback(() => {
+    async function init() {
+      await loadCampaigns();
+      await loadEnrollments();
+    }
+
+    init();
+  }, [])
+);
 
   // Get current timestamp
   const now = new Date();
@@ -42,27 +68,56 @@ export default function MyCampaignsScreen() {
       enrolled: enrolledItem,
     })).filter((item) => item.campaign !== undefined);
 
+    console.log("Campaigns:", useCampaignStore.getState().campaigns);
+
+    console.log(
+      "Lookup campaign 1:",
+      getCampaignById(1)
+    );
+
+    console.log(
+      "Lookup campaign 2:",
+      getCampaignById(2)
+    );
+
+    console.log(
+      "Lookup campaign 3:",
+      getCampaignById(3)
+    );
+
     const allCompleted = completed.map((completedItem) => ({
       type: 'completed' as const,
       completed: completedItem,
     }));
 
     switch (activeFilter) {
-      case 'active':
+      // case 'active':
+      //   return allEnrolled.filter((item) => {
+      //     const campaign = item.campaign!;
+      //     const endDate = new Date(campaign.endsAt);
+      //     return (
+      //       item.enrolled.verificationStatus === 'verified' &&
+      //       endDate > now
+      //     );
+      //   });
+      case "active":
         return allEnrolled.filter((item) => {
           const campaign = item.campaign!;
           const endDate = new Date(campaign.endsAt);
-          return (
-            item.enrolled.verificationStatus === 'verified' &&
-            endDate > now
-          );
+
+          return endDate > now;
         });
 
-      case 'pending':
-        return allEnrolled.filter(
-          (item) => item.enrolled.verificationStatus === 'pending'
-        );
+      // case 'pending':
+      //   return allEnrolled.filter(
+      //     (item) => item.enrolled.verificationStatus === 'pending'
+      //   );
 
+      case "pending":
+        return allEnrolled.filter(
+          (item) =>
+            item.enrolled.verificationStatus === "pending"
+        );
       case 'completed':
         return allCompleted;
 
@@ -74,13 +129,14 @@ export default function MyCampaignsScreen() {
     }
   }, [activeFilter, enrolled, completed, getCampaignById, now]);
 
-  const handleCampaignPress = (campaignId: string) => {
+  const handleCampaignPress = (campaignId: number) => {
     router.push(`/modals/campaign-detail?id=${campaignId}`);
   };
 
   const handleDiscoverPress = () => {
     router.push('/(tabs)/discover');
   };
+
 
   const renderEmptyState = () => (
     <View style={styles.emptyStateContainer}>
@@ -112,13 +168,13 @@ export default function MyCampaignsScreen() {
     if (item.type === 'enrolled' && item.campaign) {
       return (
         <Pressable
-          onPress={() => handleCampaignPress(item.campaign!.id)}
+          onPress={() => handleCampaignPress(Number(item.campaign!.id))}
           style={styles.cardWrapper}
         >
           <CampaignCardFull
             campaign={item.campaign}
             enrolled={item.enrolled}
-            onPress={() => handleCampaignPress(item.campaign!.id)}
+            onPress={() => handleCampaignPress(Number(item.campaign!.id))}
           />
         </Pressable>
       );

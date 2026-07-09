@@ -62,7 +62,7 @@ export default function DiscoverScreen() {
     return campaigns[0];
   }, [campaigns]);
 
-  const isEnrolledIn = (campaignId: string) => {
+  const isEnrolledIn = (campaignId: number) => {
     return enrolled.some((e) => e.campaignId === campaignId);
   };
 
@@ -91,7 +91,7 @@ export default function DiscoverScreen() {
       else resumeTrack();
     } else {
       playTrack({
-        id: featuredCampaign.id.toString(),
+        id: featuredCampaign.id,
         trackName: featuredCampaign.trackName,
         artistName: featuredCampaign.artistName,
         albumArt: featuredCampaign.albumArt,
@@ -266,8 +266,8 @@ export default function DiscoverScreen() {
             renderItem={({ item }: { item: Campaign }) => (
               <CampaignCard
                 campaign={item}
-                isEnrolled={isEnrolledIn(item.id.toString())}
-                onPress={() => handleCampaignPress(item.id.toString())}
+                isEnrolled={isEnrolledIn(item.id)}
+                onPress={() => handleCampaignPress(item.id)}
               />
             )}
             scrollEnabled={false}

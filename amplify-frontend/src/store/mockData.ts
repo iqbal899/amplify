@@ -201,36 +201,36 @@ export const mockEnrolled: EnrolledCampaign[] = [
   },
 ];
 
-export const mockCompleted: CompletedCampaign[] = [
-  {
-    campaignId: 'campaign-old-1',
-    trackName: 'Raag & Roll',
-    artistName: 'Bhupen Hazarika Revival',
-    albumArt: '',
-    genre: 'Assamese Classic',
-    platform: 'instagram',
-    submittedUrl: 'https://www.instagram.com/reel/old123',
-    verificationStatus: 'verified',
-    finalViews: 15680,
-    totalEarned: 1200,
-    completedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-    allMilestonesHit: false,
-  },
-  {
-    campaignId: 'campaign-old-2',
-    trackName: 'Valley Echo',
-    artistName: 'Aisha Pakhrin',
-    albumArt: '',
-    genre: 'Nepali Fusion',
-    platform: 'youtube',
-    submittedUrl: 'https://www.youtube.com/shorts/old456',
-    verificationStatus: 'verified',
-    finalViews: 5420,
-    totalEarned: 420,
-    completedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    allMilestonesHit: false,
-  },
-];
+// export const mockCompleted: CompletedCampaign[] = [
+//   {
+//     campaignId: 'campaign-old-1',
+//     trackName: 'Raag & Roll',
+//     artistName: 'Bhupen Hazarika Revival',
+//     albumArt: '',
+//     genre: 'Assamese Classic',
+//     platform: 'instagram',
+//     submittedUrl: 'https://www.instagram.com/reel/old123',
+//     verificationStatus: 'verified',
+//     finalViews: 15680,
+//     totalEarned: 1200,
+//     completedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+//     allMilestonesHit: false,
+//   },
+//   {
+//     campaignId: 'campaign-old-2',
+//     trackName: 'Valley Echo',
+//     artistName: 'Aisha Pakhrin',
+//     albumArt: '',
+//     genre: 'Nepali Fusion',
+//     platform: 'youtube',
+//     submittedUrl: 'https://www.youtube.com/shorts/old456',
+//     verificationStatus: 'verified',
+//     finalViews: 5420,
+//     totalEarned: 420,
+//     completedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+//     allMilestonesHit: false,
+//   },
+// ];
 
 export const mockTransactions: Transaction[] = [
   {

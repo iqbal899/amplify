@@ -4,7 +4,7 @@ export async function getCampaigns() {
   const response = await api.get("/campaigns");
 
   return response.data.campaigns.map((campaign: any) => ({
-    id: campaign.id.toString(),
+    id: campaign.id,
 
     trackName: campaign.trackName,
     artistName: campaign.artistName,
@@ -39,13 +39,13 @@ export async function getCampaigns() {
   }));
 }
 
-export async function getCampaign(id: string) {
+export async function getCampaign(id: number) {
   const response = await api.get(`/campaigns/${id}`);
 
   const campaign = response.data.campaign;
 
   return {
-    id: campaign.id.toString(),
+    id: campaign.id,
 
     trackName: campaign.trackName,
     artistName: campaign.artistName,
@@ -80,13 +80,13 @@ export async function getCampaign(id: string) {
 }
 // services/campaigns.ts
 
-export async function getCampaignById(id: string) {
+export async function getCampaignById(id: number) {
   const response = await api.get(`/campaigns/${id}`);
 
   const campaign = response.data.campaign;
 
   return {
-    id: campaign.id.toString(),
+    id: campaign.id,
     trackName: campaign.trackName,
     artistName: campaign.artistName,
     albumArt: campaign.albumArt ?? "",
