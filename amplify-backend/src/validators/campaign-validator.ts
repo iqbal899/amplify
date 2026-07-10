@@ -7,7 +7,9 @@ export const getCampaignsSchema = z.object({
 
   language: z.string().optional(),
 
+  search: z.string().trim().optional(),
+
   page: z.coerce.number().min(1).default(1),
 
-  limit: z.coerce.number().min(1).max(50).default(10),
+  limit: z.coerce.number().min(1).max(50).default(20),
 });
