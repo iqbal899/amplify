@@ -1,6 +1,8 @@
 /* eslint-disable react-hooks/purity */
 import React, { useMemo, useState } from 'react';
 import { useEffect } from "react";
+import { useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 
 import {
   View,
@@ -24,6 +26,10 @@ import { useStyles } from '@/hooks/useStyles';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
 import { CampaignCard } from '@/components/ui/CampaignCard';
 import type { Campaign } from '@/types';
+
+import { Search, X } from "lucide-react-native";
+import { TextInput } from "react-native";
+import { searchCampaigns } from "@/services/campaigns";
 
 const FILTER_OPTIONS = [
   'All',
@@ -50,9 +56,45 @@ export default function DiscoverScreen() {
   const { playTrack, pauseTrack, resumeTrack } = useAudioPlayback();
   const [activeFilter, setActiveFilter] = useState('All');
 
+  const [searchVisible, setSearchVisible] =
+    useState(false);
+
+  const [searchQuery, setSearchQuery] =
+    useState("");
+
+  const [searchResults, setSearchResults] =
+    useState<Campaign[]>([]);
+
   useEffect(() => {
-    loadCampaigns();
-  }, []);
+    async function search() {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      try {
+        const result =
+          await searchCampaigns(searchQuery);
+
+        setSearchResults(result);
+      } catch (err) {
+        console.log(err);
+      }
+    }
+
+    const timeout = setTimeout(search, 350);
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
+
+  // useEffect(() => {
+  //   loadCampaigns();
+  // }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadCampaigns();
+    }, [])
+  );
 
   const userName = creator?.name || 'Creator';
 
@@ -66,24 +108,82 @@ export default function DiscoverScreen() {
     return enrolled.some((e) => e.campaignId === campaignId);
   };
 
+  // const filteredCampaigns = useMemo(() => {
+  //   if (activeFilter === 'All') return campaigns;
+
+  //   return campaigns.filter((campaign) => {
+  //     if (activeFilter === "New") {
+  //       const latestCampaignIds = campaigns
+  //         .slice()
+  //         .sort((a, b) => b.id - a.id)
+  //         .slice(0, 5)
+  //         .map((c) => c.id);
+
+  //       return latestCampaignIds.includes(campaign.id);
+  //     }
+  //     if (activeFilter === 'Trending') return campaign.isTrending;
+  //     if (activeFilter === 'Ending Soon') {
+  //       const end = new Date(campaign.endsAt).getTime();
+  //       const now = Date.now();
+  //       const hours = (end - now) / (1000 * 60 * 60);
+  //       return hours <= 48 && hours > 0;
+  //     }
+  //     if (activeFilter === 'Hindi') return campaign.language === 'Hindi';
+  //     if (activeFilter === 'Assamese') return campaign.language === 'Assamese';
+  //     return campaign.genre.toLowerCase().includes(activeFilter.toLowerCase());
+  //   });
+  // }, [campaigns, activeFilter]);
+
   const filteredCampaigns = useMemo(() => {
-    if (activeFilter === 'All') return campaigns;
+    if (activeFilter === "All") {
+      return campaigns;
+    }
 
-    return campaigns.filter((campaign) => {
-      if (activeFilter === 'New') return campaign.isNew;
-      if (activeFilter === 'Trending') return campaign.isTrending;
-      if (activeFilter === 'Ending Soon') {
-        const end = new Date(campaign.endsAt).getTime();
-        const now = Date.now();
-        const hours = (end - now) / (1000 * 60 * 60);
-        return hours <= 48 && hours > 0;
-      }
-      if (activeFilter === 'Hindi') return campaign.language === 'Hindi';
-      if (activeFilter === 'Assamese') return campaign.language === 'Assamese';
-      return campaign.genre.toLowerCase().includes(activeFilter.toLowerCase());
-    });
+    if (activeFilter === "New") {
+      return campaigns
+        .slice()
+        .sort((a, b) => b.id - a.id)
+        .slice(0, 5);
+    }
+
+    if (activeFilter === "Trending") {
+      return campaigns.filter((campaign) => campaign.isTrending);
+    }
+
+    if (activeFilter === "Ending Soon") {
+      const now = Date.now();
+
+      return campaigns
+        .filter(
+          (campaign) =>
+            new Date(campaign.endsAt).getTime() > now
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.endsAt).getTime() -
+            new Date(b.endsAt).getTime()
+        )
+        .slice(0, 5);
+    }
+
+    if (activeFilter === "Hindi") {
+      return campaigns.filter(
+        (campaign) => campaign.language === "Hindi"
+      );
+    }
+
+    if (activeFilter === "Assamese") {
+      return campaigns.filter(
+        (campaign) => campaign.language === "Assamese"
+      );
+    }
+
+    return campaigns.filter((campaign) =>
+      campaign.genre
+        .toLowerCase()
+        .includes(activeFilter.toLowerCase())
+    );
   }, [campaigns, activeFilter]);
-
   const handlePlayFeatured = () => {
     if (!featuredCampaign) return;
     if (currentTrack?.id === featuredCampaign.id) {
@@ -102,24 +202,24 @@ export default function DiscoverScreen() {
   };
 
   const handleViewCampaign = () => {
-  if (!featuredCampaign) return;
+    if (!featuredCampaign) return;
 
-  router.push({
-    pathname: "/modals/campaign-detail",
-    params: {
-      id: featuredCampaign.id.toString(),
-    },
-  });
-};
+    router.push({
+      pathname: "/modals/campaign-detail",
+      params: {
+        id: featuredCampaign.id.toString(),
+      },
+    });
+  };
 
   const handleCampaignPress = (campaignId: number | string) => {
-  router.push({
-    pathname: "/modals/campaign-detail",
-    params: {
-      id: campaignId.toString(),
-    },
-  });
-};
+    router.push({
+      pathname: "/modals/campaign-detail",
+      params: {
+        id: campaignId.toString(),
+      },
+    });
+  };
 
   const handleEnrolledPress = () => {
     router.navigate('/(tabs)/my-campaigns');
@@ -153,8 +253,35 @@ export default function DiscoverScreen() {
                 <Sun size={22} color={colors.text} />
               )}
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                if (searchVisible) {
+                  setSearchVisible(false);
+                  setSearchQuery("");
+                } else {
+                  setSearchVisible(true);
+                }
+              }}
+              style={{ marginRight: spacing.md }}
+            >
+              {searchVisible ? (
+                <X
+                  size={22}
+                  color={colors.text}
+                />
+              ) : (
+                <Search
+                  size={22}
+                  color={colors.text}
+                />
+              )}
+            </TouchableOpacity>
+
             <TouchableOpacity>
-              <Bell size={22} color={colors.text} />
+              <Bell
+                size={22}
+                color={colors.text}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -163,6 +290,43 @@ export default function DiscoverScreen() {
         <Text style={styles.greeting}>
           What are you creating today, {userName}?
         </Text>
+
+        {searchVisible && (
+          <View
+            style={{
+              marginHorizontal: spacing.lg,
+              marginTop: spacing.md,
+              marginBottom: spacing.md,
+              backgroundColor: colors.surface,
+              borderRadius: radius.full,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: spacing.md,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Search
+              size={18}
+              color={colors.textMuted}
+            />
+
+            <TextInput
+              placeholder="Search campaigns..."
+              placeholderTextColor={
+                colors.textMuted
+              }
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                marginLeft: spacing.sm,
+                color: colors.text,
+              }}
+            />
+          </View>
+        )}
 
         {/* Featured Campaign Banner */}
         {featuredCampaign && (
@@ -262,7 +426,12 @@ export default function DiscoverScreen() {
         {/* Campaign Cards List */}
         <View style={styles.listContainer}>
           <FlashList
-            data={filteredCampaigns}
+            data={
+              searchQuery.trim()
+                ? searchResults
+                : filteredCampaigns
+            }
+            
             renderItem={({ item }: { item: Campaign }) => (
               <CampaignCard
                 campaign={item}
