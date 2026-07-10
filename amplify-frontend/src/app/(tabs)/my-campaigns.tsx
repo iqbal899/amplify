@@ -20,7 +20,7 @@ import { CampaignCardFull } from '@/components/ui/CampaignCardFull';
 import { useCampaignStore } from '@/store/campaignStore';
 import { useTheme } from '@/hooks/use-theme';
 
-type FilterTab = 'active' | 'pending' | 'completed' | 'all';
+type FilterTab = 'active' | 'submitted' | 'completed' | 'all';
 
 export default function MyCampaignsScreen() {
   const router = useRouter();
@@ -118,11 +118,10 @@ export default function MyCampaignsScreen() {
       //     (item) => item.enrolled.verificationStatus === 'pending'
       //   );
 
-      case "pending":
-        return allEnrolled.filter(
-          (item) =>
-            item.enrolled.verificationStatus === "pending"
-        );
+      case "submitted":
+  return allEnrolled.filter((item) =>
+    !!getSubmissionByCampaignId(item.campaign!.id)
+  );
       case 'completed':
         return allCompleted;
 
@@ -266,7 +265,7 @@ export default function MyCampaignsScreen() {
 
   const filterOptions: { label: string; value: FilterTab }[] = [
     { label: 'Active', value: 'active' },
-    { label: 'Pending Verification', value: 'pending' },
+    { label: 'Submitted', value: 'submitted' },
     { label: 'Completed', value: 'completed' },
     { label: 'All', value: 'all' },
   ];
