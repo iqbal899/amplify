@@ -23,6 +23,7 @@ import { useThemeStore } from "@/store/themeStore";
 import { useTheme } from "@/hooks/use-theme";
 import { useRouter } from "expo-router";
 
+import ConfirmLogoutModal from "@/components/modals/ConfirmLogoutModal";
 import {
   getProfile,
   updateProfile,
@@ -34,6 +35,9 @@ export default function ProfileScreen() {
 
   const { themeMode, setThemeMode } =
     useThemeStore();
+
+  const [logoutVisible, setLogoutVisible] =
+    React.useState(false);
 
   const creator = useAuthStore(
     (state) => state.creator
@@ -65,10 +69,17 @@ export default function ProfileScreen() {
   }, []);
 
   const handleLogout = () => {
+    setLogoutVisible(true);
+  };
+
+  const confirmLogout = () => {
+    setLogoutVisible(false);
+
     logout();
 
     router.replace("/");
   };
+
 
   const handleSettingPress = (
     setting: string
@@ -86,8 +97,8 @@ export default function ProfileScreen() {
   };
 
   const handleEditProfile = () => {
-  router.push("/modals/edit-profile");
-};
+    router.push("/modals/edit-profile");
+  };
 
   const handleYouTubeConnect = () => {
     Alert.alert(
@@ -98,435 +109,440 @@ export default function ProfileScreen() {
 
   const displayName = creator?.name ?? "Creator";
 
-const instagramUsername = creator?.instagramUsername;
+  const instagramUsername = creator?.instagramUsername;
 
-const instagramConnected = !!instagramUsername;
+  const instagramConnected = !!instagramUsername;
 
-const settingsItems = [
-  {
-    id: "notifications",
-    label: "Notifications",
-    icon: Bell,
-  },
-  {
-    id: "history",
-    label: "Campaign History",
-    icon: History,
-  },
-  {
-    id: "terms",
-    label: "Terms & Rules",
-    icon: FileText,
-  },
-  {
-    id: "help",
-    label: "Help & Support",
-    icon: HelpCircle,
-  },
-  {
-    id: "logout",
-    label: "Log out",
-    icon: LogOut,
-    isRed: true,
-  },
-];
+  const settingsItems = [
+    {
+      id: "notifications",
+      label: "Notifications",
+      icon: Bell,
+    },
+    {
+      id: "history",
+      label: "Campaign History",
+      icon: History,
+    },
+    {
+      id: "terms",
+      label: "Terms & Rules",
+      icon: FileText,
+    },
+    {
+      id: "help",
+      label: "Help & Support",
+      icon: HelpCircle,
+    },
+    {
+      id: "logout",
+      label: "Log out",
+      icon: LogOut,
+      isRed: true,
+    },
+  ];
 
   return (
-  <SafeAreaView
-    style={{
-      flex: 1,
-      backgroundColor: colors.bg,
-    }}
-  >
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{
-        paddingBottom: spacing.xl,
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: colors.bg,
       }}
     >
-      {/* Header */}
-
-      <View
-        style={{
-          padding: spacing.lg,
-          alignItems: "center",
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: spacing.xl,
         }}
       >
+        {/* Header */}
+
         <View
           style={{
-            width: 72,
-            height: 72,
-            borderRadius: 36,
-            backgroundColor: colors.blue,
-            justifyContent: "center",
+            padding: spacing.lg,
             alignItems: "center",
-            marginBottom: spacing.md,
           }}
         >
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: colors.blue,
+              justifyContent: "center",
+              alignItems: "center",
+              marginBottom: spacing.md,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 30,
+                color: colors.bg,
+                fontFamily: fonts.display,
+              }}
+            >
+              {displayName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+
           <Text
             style={{
-              fontSize: 30,
-              color: colors.bg,
+              fontSize: 24,
+              color: colors.text,
               fontFamily: fonts.display,
             }}
           >
-            {displayName.charAt(0).toUpperCase()}
+            {displayName}
           </Text>
-        </View>
 
-        <Text
-          style={{
-            fontSize: 24,
-            color: colors.text,
-            fontFamily: fonts.display,
-          }}
-        >
-          {displayName}
-        </Text>
-
-        <Text
-          style={{
-            color: colors.textMuted,
-            marginTop: spacing.xs,
-          }}
-        >
-          {creator?.email}
-        </Text>
-
-        {instagramConnected && (
           <Text
             style={{
-              color: colors.blue,
+              color: colors.textMuted,
               marginTop: spacing.xs,
             }}
           >
-            @{instagramUsername}
-          </Text>
-        )}
-
-        <TouchableOpacity
-          onPress={handleEditProfile}
-          style={{
-            marginTop: spacing.md,
-            paddingHorizontal: spacing.lg,
-            paddingVertical: spacing.sm,
-            borderRadius: radius.full,
-            backgroundColor: colors.surface,
-          }}
-        >
-          <Text
-            style={{
-              color: colors.text,
-              fontWeight: "600",
-            }}
-          >
-            Edit Profile
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Creator Info */}
-
-      <View
-        style={{
-          paddingHorizontal: spacing.lg,
-          marginBottom: spacing.lg,
-        }}
-      >
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            borderRadius: radius.lg,
-            padding: spacing.lg,
-          }}
-        >
-          <Text
-            style={{
-              color: colors.textMuted,
-              marginBottom: spacing.sm,
-            }}
-          >
-            Phone
+            {creator?.email}
           </Text>
 
-          <Text
-            style={{
-              color: colors.text,
-              fontSize: 16,
-              marginBottom: spacing.lg,
-            }}
-          >
-            {creator?.phone ?? "Not Added"}
-          </Text>
-
-          <Text
-            style={{
-              color: colors.textMuted,
-              marginBottom: spacing.sm,
-            }}
-          >
-            Instagram Username
-          </Text>
-
-          <Text
-            style={{
-              color: colors.text,
-              fontSize: 16,
-            }}
-          >
-            {creator?.instagramUsername
-              ? `@${creator.instagramUsername}`
-              : "Not Connected"}
-          </Text>
-        </View>
-      </View>
-
-      {/* Statistics */}
-
-      <View
-        style={{
-          paddingHorizontal: spacing.lg,
-          marginBottom: spacing.lg,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-around",
-            backgroundColor: colors.surface,
-            borderRadius: radius.lg,
-            paddingVertical: spacing.lg,
-          }}
-        >
-          <View
-            style={{
-              alignItems: "center",
-            }}
-          >
+          {instagramConnected && (
             <Text
               style={{
-                fontSize: 22,
                 color: colors.blue,
-                fontWeight: "700",
-              }}
-            >
-              {enrolled.length}
-            </Text>
-
-            <Text
-              style={{
-                color: colors.textMuted,
                 marginTop: spacing.xs,
               }}
             >
-              Campaigns
+              @{instagramUsername}
             </Text>
-          </View>
-
-          <View
-            style={{
-              alignItems: "center",
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 22,
-                color: colors.blue,
-                fontWeight: "700",
-              }}
-            >
-              {creator?.createdAt
-                ? new Date(
-                    creator.createdAt
-                  ).getFullYear()
-                : "--"}
-            </Text>
-
-            <Text
-              style={{
-                color: colors.textMuted,
-                marginTop: spacing.xs,
-              }}
-            >
-              Joined
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Connected Accounts */}
-
-      <View
-        style={{
-          paddingHorizontal: spacing.lg,
-          marginBottom: spacing.lg,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 16,
-            fontWeight: "700",
-            color: colors.text,
-            marginBottom: spacing.md,
-          }}
-        >
-          Connected Accounts
-        </Text>
-
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            borderRadius: radius.lg,
-            padding: spacing.lg,
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: spacing.md,
-          }}
-        >
-          <Text
-            style={{
-              color: colors.text,
-              fontSize: 16,
-            }}
-          >
-            Instagram
-          </Text>
-
-          <Text
-            style={{
-              color: instagramConnected
-                ? colors.green
-                : colors.textMuted,
-            }}
-          >
-            {instagramConnected
-              ? `@${instagramUsername}`
-              : "Not Connected"}
-          </Text>
-        </View>
-
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            borderRadius: radius.lg,
-            padding: spacing.lg,
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              color: colors.text,
-              fontSize: 16,
-            }}
-          >
-            YouTube
-          </Text>
+          )}
 
           <TouchableOpacity
-            onPress={handleYouTubeConnect}
+            onPress={handleEditProfile}
+            style={{
+              marginTop: spacing.md,
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.sm,
+              borderRadius: radius.full,
+              backgroundColor: colors.surface,
+            }}
           >
             <Text
               style={{
-                color: colors.blue,
+                color: colors.text,
                 fontWeight: "600",
               }}
             >
-              Connect
+              Edit Profile
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
-      {/* Settings */}
 
-<View
-  style={{
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.xl,
-  }}
->
-  <Text
-    style={{
-      fontSize: 16,
-      fontFamily: fonts.displayMedium,
-      color: colors.text,
-      marginBottom: spacing.md,
-    }}
-  >
-    Settings
-  </Text>
+        {/* Creator Info */}
 
-  <View
-    style={{
-      backgroundColor: colors.surface,
-      borderRadius: radius.lg,
-      overflow: "hidden",
-    }}
-  >
-    {settingsItems.map((item, index) => {
-      const Icon = item.icon;
-
-      return (
-        <TouchableOpacity
-          key={item.id}
-          onPress={() =>
-            handleSettingPress(item.id)
-          }
+        <View
           style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: spacing.lg,
-            borderBottomWidth:
-              index === settingsItems.length - 1
-                ? 0
-                : 1,
-            borderBottomColor: colors.border,
+            paddingHorizontal: spacing.lg,
+            marginBottom: spacing.lg,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: radius.lg,
+              padding: spacing.lg,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.textMuted,
+                marginBottom: spacing.sm,
+              }}
+            >
+              Phone
+            </Text>
+
+            <Text
+              style={{
+                color: colors.text,
+                fontSize: 16,
+                marginBottom: spacing.lg,
+              }}
+            >
+              {creator?.phone ?? "Not Added"}
+            </Text>
+
+            <Text
+              style={{
+                color: colors.textMuted,
+                marginBottom: spacing.sm,
+              }}
+            >
+              Instagram Username
+            </Text>
+
+            <Text
+              style={{
+                color: colors.text,
+                fontSize: 16,
+              }}
+            >
+              {creator?.instagramUsername
+                ? `@${creator.instagramUsername}`
+                : "Not Connected"}
+            </Text>
+          </View>
+        </View>
+
+        {/* Statistics */}
+
+        <View
+          style={{
+            paddingHorizontal: spacing.lg,
+            marginBottom: spacing.lg,
           }}
         >
           <View
             style={{
               flexDirection: "row",
-              alignItems: "center",
+              justifyContent: "space-around",
+              backgroundColor: colors.surface,
+              borderRadius: radius.lg,
+              paddingVertical: spacing.lg,
             }}
           >
-            <Icon
-              size={20}
-              color={
-                item.isRed
-                  ? "#EF4444"
-                  : colors.text
-              }
-            />
+            <View
+              style={{
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 22,
+                  color: colors.blue,
+                  fontWeight: "700",
+                }}
+              >
+                {enrolled.length}
+              </Text>
+
+              <Text
+                style={{
+                  color: colors.textMuted,
+                  marginTop: spacing.xs,
+                }}
+              >
+                Campaigns
+              </Text>
+            </View>
+
+            <View
+              style={{
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 22,
+                  color: colors.blue,
+                  fontWeight: "700",
+                }}
+              >
+                {creator?.createdAt
+                  ? new Date(
+                    creator.createdAt
+                  ).getFullYear()
+                  : "--"}
+              </Text>
+
+              <Text
+                style={{
+                  color: colors.textMuted,
+                  marginTop: spacing.xs,
+                }}
+              >
+                Joined
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Connected Accounts */}
+
+        <View
+          style={{
+            paddingHorizontal: spacing.lg,
+            marginBottom: spacing.lg,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: "700",
+              color: colors.text,
+              marginBottom: spacing.md,
+            }}
+          >
+            Connected Accounts
+          </Text>
+
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: radius.lg,
+              padding: spacing.lg,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: spacing.md,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.text,
+                fontSize: 16,
+              }}
+            >
+              Instagram
+            </Text>
 
             <Text
               style={{
-                marginLeft: spacing.md,
-                fontSize: 16,
-                color: item.isRed
-                  ? "#EF4444"
-                  : colors.text,
-                fontFamily: fonts.body,
+                color: instagramConnected
+                  ? colors.green
+                  : colors.textMuted,
               }}
             >
-              {item.label}
+              {instagramConnected
+                ? `@${instagramUsername}`
+                : "Not Connected"}
             </Text>
           </View>
 
-          {!item.isRed && (
-            <ChevronRight
-              size={18}
-              color={colors.textMuted}
-            />
-          )}
-        </TouchableOpacity>
-      );
-    })}
-  </View>
-</View>
-    </ScrollView>
-  </SafeAreaView>
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: radius.lg,
+              padding: spacing.lg,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                color: colors.text,
+                fontSize: 16,
+              }}
+            >
+              YouTube
+            </Text>
+
+            <TouchableOpacity
+              onPress={handleYouTubeConnect}
+            >
+              <Text
+                style={{
+                  color: colors.blue,
+                  fontWeight: "600",
+                }}
+              >
+                Connect
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        {/* Settings */}
+
+        <View
+          style={{
+            paddingHorizontal: spacing.lg,
+            marginBottom: spacing.xl,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 16,
+              fontFamily: fonts.displayMedium,
+              color: colors.text,
+              marginBottom: spacing.md,
+            }}
+          >
+            Settings
+          </Text>
+
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: radius.lg,
+              overflow: "hidden",
+            }}
+          >
+            {settingsItems.map((item, index) => {
+              const Icon = item.icon;
+
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  onPress={() =>
+                    handleSettingPress(item.id)
+                  }
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: spacing.lg,
+                    borderBottomWidth:
+                      index === settingsItems.length - 1
+                        ? 0
+                        : 1,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Icon
+                      size={20}
+                      color={
+                        item.isRed
+                          ? "#EF4444"
+                          : colors.text
+                      }
+                    />
+
+                    <Text
+                      style={{
+                        marginLeft: spacing.md,
+                        fontSize: 16,
+                        color: item.isRed
+                          ? "#EF4444"
+                          : colors.text,
+                        fontFamily: fonts.body,
+                      }}
+                    >
+                      {item.label}
+                    </Text>
+                  </View>
+
+                  {!item.isRed && (
+                    <ChevronRight
+                      size={18}
+                      color={colors.textMuted}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+        <ConfirmLogoutModal
+          visible={logoutVisible}
+          onCancel={() => setLogoutVisible(false)}
+          onConfirm={confirmLogout}
+        />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
