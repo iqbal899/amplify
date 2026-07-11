@@ -12,7 +12,14 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, radius, fonts } from '@/constants/theme';
+import { useTheme } from "@/hooks/use-theme";
+
+import {
+  spacing,
+  radius,
+  fonts,
+} from "@/constants/theme";
+
 import { useCampaignStore } from '@/store/campaignStore';
 import { submitReel as submitReelApi } from "@/services/submissions";
 import { useAuthStore } from '@/store/authStore';
@@ -23,6 +30,7 @@ type Platform = 'instagram' | 'youtube' | null;
 
 const SubmitReelModal: React.FC = () => {
   const router = useRouter();
+  const colors = useTheme();
   const { campaignId } = useLocalSearchParams<{ campaignId: string }>();
   const getCampaignById = useCampaignStore((state) => state.getCampaignById);
   //const submitReel = useCampaignStore((state) => state.submitReel);
@@ -403,18 +411,29 @@ const SubmitReelModal: React.FC = () => {
           onPress={handleSubmit}
           disabled={isSubmitDisabled}
           style={{
-            backgroundColor: isSubmitDisabled ? colors.border : colors.blue,
+            backgroundColor: isSubmitDisabled
+              ? colors.surface
+              : colors.surfaceElevated,
+
             borderRadius: radius.full,
-            paddingVertical: spacing.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: 48,
+            minHeight: 56,
+            justifyContent: "center",
+            alignItems: "center",
+            shadowColor: colors.surface,
+            shadowOpacity: 0.35,
+            shadowRadius: 12,
+            shadowOffset: {
+              width: 0,
+              height: 5,
+            },
+
+            elevation: 8,
           }}
         >
           {isLoading ? (
             <ActivityIndicator color={colors.bg} size="small" />
           ) : (
-            <Text style={{ fontFamily: fonts.body, color: colors.bg, fontWeight: '600' }}>Submit for Verification</Text>
+            <Text style={{ fontFamily: fonts.body, color: colors.blueDim, fontWeight: '600' }}>Submit for Verification</Text>
           )}
         </TouchableOpacity>
       </View>

@@ -31,7 +31,7 @@ import { Platform } from 'react-native';
 // };
 
 export const lightColors = {
-  bg: '#F5F9F6',                  // Soft mint background
+  bg: '#edf5ef',                  // Soft mint background
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
   card: '#FFFFFF',
@@ -100,10 +100,10 @@ export const lightColors = {
 // };
 
 export const darkColors = {
-  bg: '#0E1713',                  // Deep emerald charcoal
-  surface: '#16211D',
-  surfaceElevated: '#1C2A25',
-  card: '#16211D',
+  bg: '#0a1410',                  // Deep emerald charcoal
+  surface: '#13221c',
+  surfaceElevated: '#1e2e28',
+  card: '#16241f',
 
   // Primary
   blue: '#34D399',                // Emerald
