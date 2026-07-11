@@ -101,7 +101,9 @@ export default function DiscoverScreen() {
   const featuredCampaign = useMemo(() => {
     if (!campaigns.length) return undefined;
 
-    return campaigns[0];
+    return campaigns
+      .slice()
+      .sort((a, b) => b.id - a.id)[0];
   }, [campaigns]);
 
   const isEnrolledIn = (campaignId: number) => {
@@ -337,7 +339,7 @@ export default function DiscoverScreen() {
                 <View
                   style={[
                     styles.badge,
-                    { backgroundColor: featuredCampaign.isTrending ? colors.blue : colors.gold },
+                    { backgroundColor: featuredCampaign.isTrending ? colors.blue : colors.green },
                   ]}
                 >
                   <Text style={styles.badgeText}>
@@ -431,7 +433,7 @@ export default function DiscoverScreen() {
                 ? searchResults
                 : filteredCampaigns
             }
-            
+
             renderItem={({ item }: { item: Campaign }) => (
               <CampaignCard
                 campaign={item}
@@ -518,9 +520,12 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'flex-start',
   },
   badge: {
+    alignSelf: "flex-start",
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    borderRadius: radius.full,
+    borderRadius: radius.sm,
+    justifyContent: "center",
+    alignItems: "center",
   },
   badgeText: {
     fontSize: 11,
