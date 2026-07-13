@@ -84,18 +84,34 @@ export default function ProfileScreen() {
   const handleSettingPress = (
     setting: string
   ) => {
-    if (setting === "logout") {
-      handleLogout();
+    switch (setting) {
+      case "history":
+        router.push("/modals/campaign-history");
+        break;
 
-      return;
+      // case "terms":
+      //   router.push("/modals/terms-and-rules");
+      //   break;
+
+      // case "help":
+      //   router.push("/modals/help-support");
+      //   break;
+
+      // case "notifications":
+      //   router.push("/modals/notifications");
+      //   break;
+
+      case "logout":
+        handleLogout();
+        break;
+
+      default:
+        Alert.alert(
+          "Coming Soon",
+          `${setting} feature coming soon`
+        );
     }
-
-    Alert.alert(
-      "Coming Soon",
-      `${setting} feature coming soon`
-    );
   };
-
   const handleEditProfile = () => {
     router.push("/modals/edit-profile");
   };
