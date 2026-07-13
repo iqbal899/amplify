@@ -89,9 +89,9 @@ export default function ProfileScreen() {
         router.push("/modals/campaign-history");
         break;
 
-      // case "terms":
-      //   router.push("/modals/terms-and-rules");
-      //   break;
+      case "terms":
+        router.push("/modals/terms-and-rules");
+        break;
 
       // case "help":
       //   router.push("/modals/help-support");
