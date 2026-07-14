@@ -35,6 +35,41 @@ export default function EditProfileScreen() {
 
   const [loading, setLoading] = useState(false);
 
+  // const handleSave = async () => {
+  //   if (!name.trim()) {
+  //     Alert.alert("Validation", "Name is required.");
+  //     return;
+  //   }
+
+  //   try {
+  //     setLoading(true);
+
+  //     const updatedCreator = await updateProfile({
+  //       name: name.trim(),
+  //       phone: phone.trim(),
+  //       instagramUsername: instagramUsername.trim(),
+  //       profileImage: profileImage.trim(),
+  //     });
+
+  //     setCreator(updatedCreator);
+
+  //     Alert.alert("Success", "Profile updated successfully.", [
+  //       {
+  //         text: "OK",
+  //         onPress: () => router.back(),
+  //       },
+  //     ]);
+  //   } catch (err: any) {
+  //     Alert.alert(
+  //       "Update Failed",
+  //       err?.response?.data?.message ??
+  //         "Something went wrong."
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert("Validation", "Name is required.");
@@ -44,32 +79,56 @@ export default function EditProfileScreen() {
     try {
       setLoading(true);
 
-      const updatedCreator = await updateProfile({
+      const payload: {
+        name?: string;
+        phone?: string;
+        instagramUsername?: string;
+        profileImage?: string;
+      } = {
         name: name.trim(),
-        phone: phone.trim(),
-        instagramUsername: instagramUsername.trim(),
-        profileImage: profileImage.trim(),
-      });
+      };
+
+      if (phone.trim()) {
+        payload.phone = phone.trim();
+      }
+
+      if (instagramUsername.trim()) {
+        payload.instagramUsername =
+          instagramUsername.trim();
+      }
+
+      if (profileImage.trim()) {
+        payload.profileImage =
+          profileImage.trim();
+      }
+
+      const updatedCreator =
+        await updateProfile(payload);
 
       setCreator(updatedCreator);
 
-      Alert.alert("Success", "Profile updated successfully.", [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
+      Alert.alert(
+        "Success",
+        "Profile updated successfully.",
+        [
+          {
+            text: "OK",
+            onPress: () => router.back(),
+          },
+        ]
+      );
     } catch (err: any) {
+      console.log(err.response?.data);
+
       Alert.alert(
         "Update Failed",
         err?.response?.data?.message ??
-          "Something went wrong."
+        "Something went wrong."
       );
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <SafeAreaView
       style={{
