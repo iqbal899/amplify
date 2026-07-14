@@ -93,9 +93,9 @@ export default function ProfileScreen() {
         router.push("/modals/terms-and-rules");
         break;
 
-      // case "help":
-      //   router.push("/modals/help-support");
-      //   break;
+      case "help":
+        router.push("/modals/help-support");
+        break;
 
       // case "notifications":
       //   router.push("/modals/notifications");
