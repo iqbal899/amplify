@@ -1,15 +1,14 @@
 /* eslint-disable react-hooks/purity */
-import React, { useMemo, useState } from 'react';
-import { useEffect } from "react";
-import { useCallback } from "react";
+import React, { useMemo, useState , useEffect, useCallback, useRef} from 'react';
 import { useFocusEffect } from "expo-router";
-
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Animated,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
@@ -28,7 +27,6 @@ import { CampaignCard } from '@/components/ui/CampaignCard';
 import type { Campaign } from '@/types';
 
 import { Search, X } from "lucide-react-native";
-import { TextInput } from "react-native";
 import { searchCampaigns } from "@/services/campaigns";
 
 const FILTER_OPTIONS = [
@@ -55,7 +53,8 @@ export default function DiscoverScreen() {
   const { currentTrack, isPlaying } = useAudioStore();
   const { playTrack, pauseTrack, resumeTrack } = useAudioPlayback();
   const [activeFilter, setActiveFilter] = useState('All');
-
+  const rotateAnim = useRef(new Animated.Value(themeMode === 'dark' ? 1 : 0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
   const [searchVisible, setSearchVisible] =
     useState(false);
 
@@ -135,6 +134,7 @@ export default function DiscoverScreen() {
   //     return campaign.genre.toLowerCase().includes(activeFilter.toLowerCase());
   //   });
   // }, [campaigns, activeFilter]);
+
 
   const filteredCampaigns = useMemo(() => {
     if (activeFilter === "All") {
@@ -223,12 +223,40 @@ export default function DiscoverScreen() {
     });
   };
 
+
+
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
   const handleEnrolledPress = () => {
     router.navigate('/(tabs)/my-campaigns');
   };
 
   const toggleTheme = () => {
-    setThemeMode(themeMode === 'light' ? 'dark' : 'light');
+    const next = themeMode === 'light' ? 'dark' : 'light';
+
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.8,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    Animated.timing(rotateAnim, {
+      toValue: next === 'dark' ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+
+    setThemeMode(next);
   };
 
   const filledPercentage = featuredCampaign
@@ -248,12 +276,14 @@ export default function DiscoverScreen() {
         <View style={styles.header}>
           <Text style={styles.logoText}>Amplify</Text>
           <View style={styles.headerRight}>
-            <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
-              {themeMode === 'light' ? (
-                <Moon size={22} color={colors.text} />
-              ) : (
-                <Sun size={22} color={colors.text} />
-              )}
+            <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle} activeOpacity={0.7}>
+              <Animated.View style={{ transform: [{ rotate }, { scale: scaleAnim }] }}>
+                {themeMode === 'light' ? (
+                  <Moon size={22} color={colors.text} />
+                ) : (
+                  <Sun size={22} color={colors.text} />
+                )}
+              </Animated.View>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
