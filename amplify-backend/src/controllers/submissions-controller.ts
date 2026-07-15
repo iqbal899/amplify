@@ -1,10 +1,11 @@
 import { Context } from "hono";
 
 import { submissionSchema } from "../validators/submissions-validator";
-
 import { submitReelService } from "../services/submissions-service";
+import type { AppEnv } from "../types";
 
-export async function submitReel(c: Context) {
+export async function submitReel(c: Context<AppEnv>) {
+  const db = c.get("db");
   const enrollmentId = Number(c.req.param("id"));
 
   const creatorId = c.get("creatorId");
@@ -25,6 +26,7 @@ export async function submitReel(c: Context) {
 
   try {
     const response = await submitReelService(
+      db,
       enrollmentId,
       creatorId,
       result.data
@@ -42,9 +44,7 @@ export async function submitReel(c: Context) {
       {
         success: false,
         message:
-          error instanceof Error
-            ? error.message
-            : "Internal Server Error",
+          error instanceof Error ? error.message : "Internal Server Error",
       },
       400
     );

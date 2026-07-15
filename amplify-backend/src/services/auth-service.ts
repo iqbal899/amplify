@@ -1,9 +1,9 @@
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 
-import { db } from "../db/client";
 import { creators } from "../db/schema/creators";
 import { generateToken } from "../utils/jwt";
+import type { Database } from "../db/client";
 
 type RegisterInput = {
   name: string;
@@ -15,7 +15,8 @@ type LoginInput = {
   email: string;
   password: string;
 };
-export async function registerCreator(data: RegisterInput) {
+
+export async function registerCreator(db: Database, data: RegisterInput) {
   const [existingCreator] = await db
     .select()
     .from(creators)
@@ -41,43 +42,40 @@ export async function registerCreator(data: RegisterInput) {
   const token = await generateToken(creator.id);
 
   return {
-    creator : sanitizeCreator(creator),
+    creator: sanitizeCreator(creator),
     token,
   };
 }
 
-export async function loginCreator(data: LoginInput) {
-    const [creator] = await db
-        .select()
-        .from(creators)
-        .where(eq(creators.email, data.email))
-        .limit(1);
+export async function loginCreator(db: Database, data: LoginInput) {
+  const [creator] = await db
+    .select()
+    .from(creators)
+    .where(eq(creators.email, data.email))
+    .limit(1);
 
-    if (!creator) {
-        throw new Error("Invalid email or password");
-    }
+  if (!creator) {
+    throw new Error("Invalid email or password");
+  }
 
-    const validPassword = await bcrypt.compare(
-        data.password,
-        creator.passwordHash
-    );
+  const validPassword = await bcrypt.compare(
+    data.password,
+    creator.passwordHash
+  );
 
-    if (!validPassword) {
-        throw new Error("Invalid email or password");
-    }
+  if (!validPassword) {
+    throw new Error("Invalid email or password");
+  }
 
-    const token = await generateToken(creator.id);
+  const token = await generateToken(creator.id);
 
-    return {
-        creator : sanitizeCreator(creator),
-        token,
-    };
+  return {
+    creator: sanitizeCreator(creator),
+    token,
+  };
 }
 
-function sanitizeCreator(
-  creator: typeof creators.$inferSelect
-) {
+function sanitizeCreator(creator: typeof creators.$inferSelect) {
   const { passwordHash, ...safeCreator } = creator;
-
   return safeCreator;
 }

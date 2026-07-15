@@ -1,16 +1,13 @@
 import { sql, and, eq } from "drizzle-orm";
 import { enrollments } from "../db/schema/enrollments";
-
-import { db } from "../db/client";
 import { campaigns } from "../db/schema/campaigns";
+import type { Database } from "../db/client";
 
 export async function enrollCampaign(
+  db: Database,
   campaignId: number,
   creatorId: number
 ) {
-  // creatorId will be used later
-  console.log("Creator ID:", creatorId);
-
   const [campaign] = await db
     .select()
     .from(campaigns)
@@ -20,16 +17,15 @@ export async function enrollCampaign(
   if (!campaign) {
     throw new Error("Campaign not found");
   }
-  //check if the campaign is open for enrollment
+
   if (campaign.status !== "open") {
     throw new Error("Campaign is not open");
   }
-  //if open check if the campaign is full
+
   if ((campaign.spotsFilled ?? 0) >= campaign.spotsTotal) {
     throw new Error("Campaign is full");
   }
 
-  //check if the creator is already enrolled in the campaign
   const [existingEnrollment] = await db
     .select()
     .from(enrollments)
@@ -45,7 +41,6 @@ export async function enrollCampaign(
     throw new Error("You are already enrolled in this campaign");
   }
 
-  // transaction to insert enrollment and update spotsFilled atomically
   const enrollment = await db.transaction(async (tx) => {
     const [enrollment] = await tx
       .insert(enrollments)

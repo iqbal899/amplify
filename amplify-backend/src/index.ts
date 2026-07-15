@@ -4,9 +4,12 @@ import authRoutes from "./routes/auth";
 import meRoutes from "./routes/me";
 import campaignRoutes from "./routes/campaigns";
 import enrollmentRoutes from "./routes/enrollments";
+import { dbMiddleware } from "./middleware/db";
+import type { AppEnv } from "./types";
 
+const app = new Hono<AppEnv>();
 
-const app = new Hono();
+app.use("*", dbMiddleware);
 
 app.get("/health", (c) => {
   return c.json({

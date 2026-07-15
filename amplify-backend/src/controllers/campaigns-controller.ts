@@ -1,14 +1,15 @@
 import { Context } from "hono";
-import {
-  getCampaignsSchema,
-} from "../validators/campaign-validator";
+import { getCampaignsSchema } from "../validators/campaign-validator";
 
 import {
   getCampaigns as getCampaignsService,
   getCampaignById as getCampaignByIdService,
 } from "../services/campaign-service";
 
-export async function getCampaigns(c: Context) {
+import type { AppEnv } from "../types";
+
+export async function getCampaigns(c: Context<AppEnv>) {
+  const db = c.get("db");
   const query = c.req.query();
 
   const result = getCampaignsSchema.safeParse(query);
@@ -24,7 +25,7 @@ export async function getCampaigns(c: Context) {
   }
 
   try {
-    const campaigns = await getCampaignsService(result.data);
+    const campaigns = await getCampaignsService(db, result.data);
 
     return c.json({
       success: true,
@@ -43,9 +44,8 @@ export async function getCampaigns(c: Context) {
   }
 }
 
-export async function getCampaignById(
-  c: Context
-) {
+export async function getCampaignById(c: Context<AppEnv>) {
+  const db = c.get("db");
   const id = Number(c.req.param("id"));
 
   if (Number.isNaN(id)) {
@@ -59,8 +59,7 @@ export async function getCampaignById(
   }
 
   try {
-    const campaign =
-      await getCampaignByIdService(id);
+    const campaign = await getCampaignByIdService(db, id);
 
     return c.json({
       success: true,
@@ -71,9 +70,7 @@ export async function getCampaignById(
       {
         success: false,
         message:
-          error instanceof Error
-            ? error.message
-            : "Internal Server Error",
+          error instanceof Error ? error.message : "Internal Server Error",
       },
       404
     );

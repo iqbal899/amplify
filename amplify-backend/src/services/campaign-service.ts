@@ -1,9 +1,7 @@
 import { and, eq, ilike, or } from "drizzle-orm";
 
-import { db } from "../db/client";
 import { campaigns } from "../db/schema/campaigns";
-
-// getcampaigns function with filters for status, genre, language, page, and limit
+import type { Database } from "../db/client";
 
 type CampaignFilters = {
   status?: "open" | "full" | "closed";
@@ -15,6 +13,7 @@ type CampaignFilters = {
 };
 
 export async function getCampaigns(
+  db: Database,
   filters: CampaignFilters
 ) {
   const conditions = [];
@@ -34,26 +33,11 @@ export async function getCampaigns(
   if (filters.search) {
     conditions.push(
       or(
-        ilike(
-          campaigns.trackName,
-          `%${filters.search}%`
-        ),
-        ilike(
-          campaigns.artistName,
-          `%${filters.search}%`
-        ),
-        ilike(
-          campaigns.genre,
-          `%${filters.search}%`
-        ),
-        ilike(
-          campaigns.language,
-          `%${filters.search}%`
-        ),
-        ilike(
-          campaigns.description,
-          `%${filters.search}%`
-        ),
+        ilike(campaigns.trackName, `%${filters.search}%`),
+        ilike(campaigns.artistName, `%${filters.search}%`),
+        ilike(campaigns.genre, `%${filters.search}%`),
+        ilike(campaigns.language, `%${filters.search}%`),
+        ilike(campaigns.description, `%${filters.search}%`)
       )!
     );
   }
@@ -61,16 +45,12 @@ export async function getCampaigns(
   return await db
     .select()
     .from(campaigns)
-    .where(
-      conditions.length
-        ? and(...conditions)
-        : undefined
-    )
+    .where(conditions.length ? and(...conditions) : undefined)
     .limit(filters.limit)
     .offset((filters.page - 1) * filters.limit);
 }
 
-export async function getCampaignById(id: number) {
+export async function getCampaignById(db: Database, id: number) {
   const [campaign] = await db
     .select()
     .from(campaigns)
@@ -83,8 +63,6 @@ export async function getCampaignById(id: number) {
 
   return {
     ...campaign,
-    spotsLeft:
-      campaign.spotsTotal - (campaign.spotsFilled ?? 0),
+    spotsLeft: campaign.spotsTotal - (campaign.spotsFilled ?? 0),
   };
 }
-

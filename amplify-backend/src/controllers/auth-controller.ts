@@ -10,7 +10,11 @@ import {
   loginCreator,
 } from "../services/auth-service";
 
-export const register = async (c: Context) => {
+import type { AppEnv } from "../types";
+
+export const register = async (c: Context<AppEnv>) => {
+  const db = c.get("db"); // ← new line
+
   const body = await c.req.json();
 
   const result = registerSchema.safeParse(body);
@@ -26,7 +30,7 @@ export const register = async (c: Context) => {
   }
 
   try {
-    const response = await registerCreator(result.data);
+    const response = await registerCreator(db, result.data); // ← pass db in
 
     return c.json(
       {
@@ -49,7 +53,9 @@ export const register = async (c: Context) => {
   }
 };
 
-export const login = async (c: Context) => {
+export const login = async (c: Context<AppEnv>) => {
+  const db = c.get("db"); // ← new line
+
   const body = await c.req.json();
 
   const result = loginSchema.safeParse(body);
@@ -65,7 +71,7 @@ export const login = async (c: Context) => {
   }
 
   try {
-    const response = await loginCreator(result.data);
+    const response = await loginCreator(db, result.data); // ← pass db in
 
     return c.json(
       {

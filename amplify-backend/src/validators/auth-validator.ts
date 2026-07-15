@@ -17,10 +17,15 @@ export const loginSchema = z.object({
 
 export const updateMeSchema = z.object({
     name: z.string().min(1).optional(),
-
     phone: z.string().optional(),
-
-    profileImage: z.string().url().optional(),
-
+    profileImage: z.preprocess(
+    (value) => {
+      if (typeof value === "string" && value.trim() === "") {
+        return undefined;
+      }
+      return value;
+    },
+    z.string().url().optional()
+  ),
     instagramUsername: z.string().optional(),
 });

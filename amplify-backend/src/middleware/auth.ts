@@ -1,10 +1,8 @@
 import { Context, Next } from "hono";
 import { verifyToken } from "../utils/jwt";
+import type { AppEnv } from "../types";
 
-export async function authMiddleware(
-  c: Context,
-  next: Next
-) {
+export async function authMiddleware(c: Context<AppEnv>, next: Next) {
   const authHeader = c.req.header("Authorization");
 
   if (!authHeader) {
@@ -20,7 +18,7 @@ export async function authMiddleware(
   const token = authHeader.replace("Bearer ", "");
 
   try {
-    const payload = await verifyToken(token) as {
+    const payload = (await verifyToken(token)) as {
       creatorId: number;
     };
 
