@@ -28,9 +28,11 @@ src/
 │   ├── client.ts
 │   └── schema/
 ├── middleware/
+│   ├── auth.ts
+│   └── db.ts
 ├── routes/
 ├── services/
-├── types/
+├── types.ts
 ├── utils/
 ├── validators/
 └── index.ts
@@ -48,14 +50,21 @@ npm install
 
 ### 2. Configure environment variables
 
-Create a `.env` file.
+This project runs on Cloudflare Workers via `wrangler dev`, which reads local secrets from **`.dev.vars`**, not `.env`.
+
+Create a `.dev.vars` file in the project root:
+
+```env
+DATABASE_URL=postgres://user:pass@localhost:5432/dbname
+JWT_SECRET=your-secret
+```
+
+Create a `.env` file only if Docker Compose needs it for Postgres container setup:
 
 ```env
 POSTGRES_USER=
 POSTGRES_PASSWORD=
 POSTGRES_DB=
-DATABASE_URL=postgres://...
-JWT_SECRET=your-secret
 ```
 
 ### 3. Start PostgreSQL using Docker
@@ -96,42 +105,45 @@ npm run migrate
 npm run dev
 ```
 
-## Implemented APIs
+To make the dev server reachable from a physical device on the same network (e.g. testing the React Native app on a phone instead of a simulator), bind to all network interfaces:
 
-### Authentication
+```bash
+npm run dev -- --ip 0.0.0.0
+```
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/auth/register` | Register a new creator |
-| POST | `/auth/login` | Login creator |
-| GET | `/me` | Get logged-in creator profile |
-| PATCH | `/me` | Update logged-in creator profile |
+Then point the frontend's `API_BASE_URL` at your machine's LAN IP (not `localhost`), e.g. `http://192.168.x.x:8787`. Find your LAN IP with `hostname -I` (Linux) or `ipconfig getifaddr en0` (macOS).
 
 ---
+
+## API Reference
+
+**Auth legend:**
+1. Public
+2. Creator (JWT)
+3. Admin (separate flow, deferred — see [Deferred Features](#deferred-features))
+
+### Auth & Creators
+
+| Verb | Route | Params | Auth | Summary |
+| --- | --- | --- | --- | --- |
+| POST | `/auth/register` | body: `name, email, password, phone?` | Public | Create creator, hash password, return JWT. |
+| POST | `/auth/login` | body: `email, password` | Public | Verify credentials, return JWT. |
+| GET | `/me` | — | Creator | Logged-in creator's profile. |
+| PATCH | `/me` | body: `name?, phone?, profileImage?, instagramUsername?` | Creator | Update own profile. |
 
 ### Campaigns
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/campaigns` | Browse campaigns with filters and pagination |
-| GET | `/campaigns/:id` | Get campaign details |
-
-Supported query parameters:
-
-- status
-- genre
-- language
-- page
-- limit
-
----
+| Verb | Route | Params | Auth | Summary |
+| --- | --- | --- | --- | --- |
+| GET | `/campaigns` | query: `status?, genre?, language?, page?, limit?` | Public | Browse campaigns. |
+| GET | `/campaigns/:id` | path: `id` | Public | Campaign detail (milestones, spots left). |
 
 ### Enrollments
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/campaigns/:id/enroll` | Enroll into a campaign |
-| GET | `/me/enrollments` | Get creator enrollments |
+| Verb | Route | Params | Auth | Summary |
+| --- | --- | --- | --- | --- |
+| POST | `/campaigns/:id/enroll` | path: `id` | Creator | Claim a spot; rejects if full/closed/duplicate; bumps `spotsFilled`. |
+| GET | `/me/enrollments` | — | Creator | Creator's enrollments + campaign details. |
 
 Enrollment Rules
 
@@ -141,14 +153,12 @@ Enrollment Rules
 - Duplicate enrollments are not allowed.
 - Campaign spot count is updated atomically using a database transaction.
 
----
-
 ### Reel Submissions
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/enrollments/:id/submission` | Submit a reel |
-| GET | `/me/submissions` | Get creator submissions |
+| Verb | Route | Params | Auth | Summary |
+| --- | --- | --- | --- | --- |
+| POST | `/enrollments/:id/submission` | path: `id`; body: `reelUrl, platform` | Creator | Submit posted reel (one per enrollment); starts `pending`, `currentViews=0`. |
+| GET | `/me/submissions` | — | Creator | Creator's submissions + enrollment/campaign info. |
 
 Submission Rules
 
@@ -159,13 +169,11 @@ Submission Rules
   - `verificationStatus = pending`
   - `currentViews = 0`
 
----
-
 ### Payouts
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/me/payouts` | Get creator payout history |
+| Verb | Route | Params | Auth | Summary |
+| --- | --- | --- | --- | --- |
+| GET | `/me/payouts` | — | Creator | Creator's payout history + related submission/campaign info. |
 
 ---
 
@@ -196,7 +204,7 @@ The project follows a layered architecture.
 ```
 Routes
     ↓
-Middleware
+Middleware (db + auth)
     ↓
 Controllers
     ↓
@@ -208,9 +216,9 @@ Database
 Responsibilities:
 
 - Routes define API endpoints.
-- Middleware handles authentication.
+- Middleware attaches a per-request database connection and handles authentication.
 - Controllers process HTTP requests and responses.
-- Services contain business logic.
+- Services contain business logic and receive the database connection as a parameter.
 - Drizzle ORM handles database operations.
 
 ---
@@ -227,6 +235,18 @@ Current database tables:
 - reel_submissions
 - payouts
 
+### Connection Handling (Cloudflare Workers)
+
+Cloudflare Workers execute each request in an isolated context; sockets and other I/O objects created during one request cannot be reused in a later request. Because of this, the database connection is **not** a module-level singleton.
+
+Instead:
+
+- `db/client.ts` exports a `createDb()` factory that opens a new `pg.Pool` (with `max: 1`) per invocation.
+- `middleware/db.ts` calls this factory at the start of every request, attaches the resulting `db` instance to Hono's context (`c.set("db", db)`), and closes the pool after the response is sent using `ctx.executionCtx.waitUntil(pool.end())`.
+- Every service function receives `db` as its first parameter instead of importing a shared instance, so the correct per-request connection is always used.
+
+This avoids intermittent request hangs that occur when a pooled connection from a previous (already-destroyed) request context is reused.
+
 ### Migrations
 
 Database schema changes are managed using **Drizzle Kit** migrations.
@@ -240,7 +260,7 @@ npm run migrate
 
 Database transactions are used to ensure data consistency for operations that modify multiple tables.
 
-Current transaction implementation: POST	/campaigns/:id/enroll	
+Current transaction implementation: `POST /campaigns/:id/enroll`
 
 - **Post-Campaign Enrollment**
   - Creates a new enrollment.
@@ -264,30 +284,51 @@ Current join implementations include:
 
 Using joins reduces the number of database queries, avoids the N+1 query problem, and provides richer API responses.
 
+---
+
+## Types
+
+Shared Hono context typing lives in `src/types.ts` as `AppEnv`:
+
+- `Bindings.DATABASE_URL` — the Postgres connection string, sourced from `.dev.vars` locally or Worker secrets in production.
+- `Variables.db` — the per-request Drizzle instance, set by `middleware/db.ts`.
+- `Variables.creatorId` — the authenticated creator's ID, set by `middleware/auth.ts`.
+
+All routes, controllers, and middleware are typed against `AppEnv` to keep `c.get()`/`c.set()` calls type-safe.
+
+---
+
 ## Deferred Features
 
 The following features are intentionally not implemented as they are outside the current project scope.
 
 ### Admin APIs
 
-- POST `/campaigns/preview`
-- POST `/campaigns`
-- PATCH `/campaigns/:id`
-- GET `/campaigns/:id/enrollments`
-- PATCH `/enrollments/:id`
-- GET `/submissions`
-- PATCH `/submissions/:id`
-- POST `/submissions/:id/refresh-views`
-- GET `/payouts`
-- POST `/payouts`
-- PATCH `/payouts/:id`
+| Verb | Route | Params | Summary |
+| --- | --- | --- | --- |
+| POST | `/campaigns/preview` | body: `spotifyTrackId` | Spotify lookup → prefill track fields (no DB write). |
+| POST | `/campaigns` | body: `trackName, artistName, spotifyTrackId?, genre?, language?, albumArt?, previewUrl?, description?, rewardPool, spotsTotal, endsAt, milestones[]` | Create campaign (defaults `open`). |
+| PATCH | `/campaigns/:id` | path: `id`; body: editable fields + `status` | Edit campaign / set status (`open`/`full`/`closed`). |
+| GET | `/campaigns/:id/enrollments` | path: `id` | Who enrolled in a campaign. |
+| PATCH | `/enrollments/:id` | path: `id`; body: `status` | Set `active`/`completed`/`rejected`. |
+| GET | `/submissions` | query: `verificationStatus?, campaignId?` | Review queue. |
+| PATCH | `/submissions/:id` | path: `id`; body: `verificationStatus` | Verify/reject a reel. |
+| POST | `/submissions/:id/refresh-views` | path: `id` | **[blackbox]** Fetch views → update `currentViews`, `lastCheckedAt`. |
+| GET | `/payouts` | query: `status?, creatorId?, campaignId?` | Payout worklist (default `pending`) + creator UPI/context. |
+| POST | `/payouts` | body: `submissionId` | Create pending payout for a milestone-hit submission (amount from `milestones`; one per submission). |
+| PATCH | `/payouts/:id` | path: `id`; body: `upiReference, status` | Record `upiReference`, mark `paid` (stamps `paidAt`) or `failed`. |
+
+Admin endpoints are planned to be gated by a shared secret rather than a role field in the schema.
+
+**Current workaround:** Since `POST /campaigns` is not yet implemented as an API route, campaigns are created manually by inserting rows directly into the `campaigns` table via `psql` (or a Docker Postgres client) during development.
 
 ### External Integrations
 
-- Spotify metadata preview
-- Instagram scraping
-- Automatic payout generation
-- Scheduled cron jobs
+- **Spotify** (Client Credentials, server-to-server) — used only in `POST /campaigns/preview`.
+- **Instagram view fetching** — blackbox for now; downstream logic only consumes `reel_submissions.currentViews`.
+- **YouTube views** — via YouTube Data API v3.
+- **Cron** (Cloudflare Cron Trigger) — polls views and creates pending payouts when milestones are met.
+- Payouts remain manual in v1: no payment-gateway API integration.
 
 ---
 
