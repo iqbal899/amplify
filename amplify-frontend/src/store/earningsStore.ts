@@ -1,47 +1,63 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Transaction, MonthlyEarning } from '@/types';
-import { mockTransactions, mockMonthlyData } from './mockData';
+import { create } from "zustand";
+import type { Transaction, MonthlyEarning } from "@/types";
 
 interface EarningsState {
-  totalEarned: number;
-  pendingAmount: number;
-  paidOut: number;
+  totalRewards: number;
+
+  paidRewards: number;
+
+  awaitingPayment: number;
+
+  activeRewards: number;
+
   transactions: Transaction[];
+
   monthlyData: MonthlyEarning[];
-  requestWithdrawal: () => void;
+
+  setRewards: (data: {
+    totalRewards: number;
+    paidRewards: number;
+    awaitingPayment: number;
+    activeRewards: number;
+    transactions: Transaction[];
+    monthlyData: MonthlyEarning[];
+  }) => void;
+
+  clearRewards: () => void;
 }
 
-export const useEarningsStore = create<EarningsState>()(
-  persist(
-    (set, get) => ({
-      totalEarned: 2840,
-      pendingAmount: 650,
-      paidOut: 2190,
-      transactions: mockTransactions,
-      monthlyData: mockMonthlyData,
-      requestWithdrawal: () => {
-        const { pendingAmount } = get();
-        if (pendingAmount < 100) return;
-        const newTransaction: Transaction = {
-          id: `txn-${Date.now()}`,
-          campaignId: '',
-          trackName: 'Withdrawal',
-          milestone: 0,
-          amount: pendingAmount,
-          status: 'pending',
-          date: new Date().toISOString(),
-        };
-        set((state) => ({
-          pendingAmount: 0,
-          transactions: [newTransaction, ...state.transactions],
-        }));
-      },
-    }),
-    {
-      name: 'doorbeen-earnings',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
-);
+export const useEarningsStore =
+  create<EarningsState>((set) => ({
+    totalRewards: 0,
+
+    paidRewards: 0,
+
+    awaitingPayment: 0,
+
+    activeRewards: 0,
+
+    transactions: [],
+
+    monthlyData: [],
+
+    setRewards: (data) =>
+      set({
+        totalRewards: data.totalRewards,
+        paidRewards: data.paidRewards,
+        awaitingPayment:
+          data.awaitingPayment,
+        activeRewards: data.activeRewards,
+        transactions: data.transactions,
+        monthlyData: data.monthlyData,
+      }),
+
+    clearRewards: () =>
+      set({
+        totalRewards: 0,
+        paidRewards: 0,
+        awaitingPayment: 0,
+        activeRewards: 0,
+        transactions: [],
+        monthlyData: [],
+      }),
+  }));

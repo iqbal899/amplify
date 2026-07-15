@@ -1,3 +1,5 @@
+import { ReactNode } from "react";
+
 export interface Milestone {
   views: number;
   minDaysLive: number;
@@ -81,6 +83,7 @@ export interface Submission {
 }
 
 export interface Transaction {
+  artistName: ReactNode;
   id: string;
   campaignId: number;
   trackName: string;
