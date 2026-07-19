@@ -2,7 +2,7 @@
   "name": "amplify-backend",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --ip 0.0.0.0",
     "deploy": "wrangler deploy --minify",
     "generate": "drizzle-kit generate",
     "push": "drizzle-kit push",

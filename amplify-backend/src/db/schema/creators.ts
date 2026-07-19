@@ -23,6 +23,19 @@ export const creators = pgTable("creators", {
 
   instagramUserId: varchar("instagram_user_id", { length: 255 }),
 
+  // AES-GCM encrypted long-lived token. Never returned to the client.
+  instagramAccessToken: text("instagram_access_token"),
+
+  // Long-lived tokens last 60 days; past this the connection is blind and the
+  // creator has to reconnect before we can read any more view counts.
+  instagramTokenExpiresAt: timestamp("instagram_token_expires_at"),
+
+  // BUSINESS | MEDIA_CREATOR. Personal accounts expose no insights, so this
+  // gates campaign enrollment.
+  instagramAccountType: varchar("instagram_account_type", { length: 32 }),
+
+  instagramConnectedAt: timestamp("instagram_connected_at"),
+
   profileImage: text("profile_image"),
 
   createdAt: timestamp("created_at")
