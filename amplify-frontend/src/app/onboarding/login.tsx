@@ -57,9 +57,29 @@ export default function LoginScreen() {
         router.replace("/(tabs)/discover");
       }
     } catch (err: any) {
+      console.error("[auth] request failed", {
+        url: err?.config?.baseURL,
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message,
+      });
+
+      const data = err?.response?.data;
+      // Zod failures come back as { errors: [...] }, not { message }
+      const validationMessage = Array.isArray(data?.errors)
+        ? data.errors.map((e: any) => e.message).join("\n")
+        : undefined;
+      // No response at all means the request never reached the server
+      const networkMessage = err?.response
+        ? undefined
+        : `Can't reach the server at ${err?.config?.baseURL ?? "the API"}.`;
+
       Alert.alert(
         "Error",
-        err?.response?.data?.message ?? "Something went wrong"
+        data?.message ??
+          validationMessage ??
+          networkMessage ??
+          "Something went wrong"
       );
     } finally {
       setLoading(false);
