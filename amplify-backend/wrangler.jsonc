@@ -6,6 +6,13 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  // Every 15 min: settle campaigns whose deadline just passed. The handler
+  // additionally polls view counts once an hour (on the :00 tick).
+  "triggers": {
+    "crons": [
+      "*/15 * * * *"
+    ]
+  },
   // "vars": {
   //   "MY_VAR": "my-variable"
   // },

@@ -34,11 +34,20 @@ export const reelSubmissions = pgTable(
 
     reelUrl: text("reel_url").notNull(),
 
+    // Resolved once from reelUrl by matching the creator's own media. Insights
+    // are addressed by media id, not URL — without this we cannot fetch views.
+    instagramMediaId: text("instagram_media_id"),
+
     platform: platformEnum("platform").notNull(),
 
     submittedAt: timestamp("submitted_at")
       .defaultNow()
       .notNull(),
+
+    // The reel's real publish time from Instagram. `submittedAt` is only when
+    // they pasted the link, so milestone `minDaysLive` has no valid anchor
+    // without this.
+    wentLiveAt: timestamp("went_live_at"),
 
     currentViews: bigint("current_views", {
       mode: "number",

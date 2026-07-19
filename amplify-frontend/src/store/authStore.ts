@@ -8,6 +8,8 @@ export interface Creator {
   email: string;
   phone: string | null;
   instagramUsername: string | null;
+  instagramAccountType?: string | null;
+  instagramConnectedAt?: string | null;
   profileImage: string | null;
   createdAt: string;
   updatedAt: string;
