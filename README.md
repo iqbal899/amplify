@@ -132,6 +132,101 @@ The API base URL is derived from the Metro packager host, so the app follows you
 
 ---
 
+## Setting up Instagram
+
+Nothing in the view-tracking pipeline can run until a Meta app exists. This is configuration, not code — there is no code change that substitutes for an app ID.
+
+The dependency chain is strictly ordered, and it currently breaks at the first link:
+
+```
+Meta app exists          ← start here
+  └─ credentials in .dev.vars / .env
+      └─ dev build (OAuth needs the amplify:// scheme)
+          └─ creator connects account
+              └─ token stored
+                  └─ reel submitted
+                      └─ views fetched
+```
+
+**You do not need App Review to test this.** In development mode your own Instagram account works as a test user. App Review is only required before real users can connect.
+
+### 1. Create the Meta app
+
+1. Go to [developers.facebook.com/apps](https://developers.facebook.com/apps) → **Create App**
+2. Add the **Instagram** product → **API setup with Instagram login**
+3. Note the **Instagram App ID** and **Instagram App Secret** (these are *not* the same as the Facebook App ID/Secret shown elsewhere in the dashboard)
+
+### 2. Register the redirect URI
+
+Under *API setup with Instagram login* → **Business login settings**, add this as a valid OAuth redirect URI, exactly:
+
+```
+amplify://oauth/callback
+```
+
+This must match `scheme` in `app.json` (`amplify`) and the `makeRedirectUri` call in `useInstagramAuth.ts`. A mismatch fails at the very end of the flow, after the user has already approved — so it looks like a hang rather than an error.
+
+The hook returns the resolved `redirectUri`, so log it and paste the exact string rather than typing it from memory.
+
+### 3. Add yourself as a tester
+
+Under **App roles → Roles**, add your own Instagram account as an *Instagram Tester*, then accept the invite from that account (Instagram → Settings → Apps and websites → Tester invites).
+
+Your account must be a **Professional (Business or Creator)** account. Personal accounts expose no insights, and the backend rejects them at connect time. Switching is free: Instagram → Settings → Account type and tools.
+
+### 4. Fill in credentials
+
+`amplify-backend/.dev.vars`:
+
+```env
+INSTAGRAM_APP_ID=<Instagram App ID>
+INSTAGRAM_APP_SECRET=<Instagram App Secret>
+```
+
+`amplify-frontend/.env`:
+
+```env
+EXPO_PUBLIC_INSTAGRAM_CLIENT_ID=<Instagram App ID>
+```
+
+Restart both servers — `wrangler dev` reads `.dev.vars` at startup, and Metro inlines `EXPO_PUBLIC_*` at bundle time.
+
+Verify the backend picked them up:
+
+```bash
+curl -s -X POST http://127.0.0.1:8787/instagram/connect \
+  -H "Authorization: Bearer <jwt>" -H "Content-Type: application/json" \
+  -d '{"code":"test","redirectUri":"amplify://oauth/callback"}'
+```
+
+Unconfigured returns `"Instagram is not configured on the server"`. Configured returns an error *from Meta* instead — which means the credentials are being used.
+
+### 5. Build a dev client
+
+**Expo Go cannot do this flow.** It only runs the prebuilt Expo Go shell and has no `amplify://` scheme registered, so the OAuth callback can never return to the app. `npx expo start --dev-client` does not create a build — it only tells Metro to serve one.
+
+```bash
+cd amplify-frontend
+npx expo run:android      # or run:ios
+```
+
+This runs prebuild → compile → install, and generates an `android/` (or `ios/`) directory. Budget ~10-15 min for the first build and ~3 GB of disk. Afterwards `npx expo start --dev-client` works normally, and JS changes need no rebuild.
+
+### 6. Prove it works
+
+Connect your account in the app, submit one of your own reels, then force a reading:
+
+```bash
+curl -s -X POST http://127.0.0.1:8787/submissions/<id>/refresh-views \
+  -H "Authorization: Bearer <jwt>"
+```
+
+A real view count means media resolution, insights parsing, token decryption, and the snapshot write are all working — the whole pipeline in one call.
+
+If it fails, the likely culprits in order are listed under [Likely to break on first real contact](#likely-to-break-on-first-real-contact).
+
+---
+
 ## Current status
 
 ### Working and verified
@@ -178,15 +273,7 @@ Untested seams, in rough order of risk:
 
 ## Next steps
 
-**1. Unblock real testing** (everything else depends on this)
-
-- Create a Meta app → Instagram → *API setup with Instagram login*
-- Register `amplify://oauth/callback` as a valid OAuth redirect URI
-- Fill `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` in `amplify-backend/.dev.vars`
-- Set `EXPO_PUBLIC_INSTAGRAM_CLIENT_ID` in `amplify-frontend/.env`
-- Build a dev client (`npx expo run:android`)
-
-In development mode your own Instagram account works as a test user without App Review. Connect it, then call `POST /submissions/:id/refresh-views` on one of your own reels — that single call validates media resolution, insights parsing, decryption, and the snapshot write at once.
+**1. Unblock real testing** — everything else depends on this. Full walkthrough in [Setting up Instagram](#setting-up-instagram).
 
 **2. Start App Review early** — Advanced Access for `instagram_business_manage_insights` has its own lead time and gates any real user.
 
