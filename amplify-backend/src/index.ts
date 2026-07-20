@@ -19,6 +19,10 @@ app.use("*", dbMiddleware);
 // Scoped to /admin/* deliberately. The creator app is native and needs no CORS;
 // widening this to "*" would hand every origin on the internet a preflight pass
 // to the creator API for no benefit.
+//
+// The admin panel does not actually rely on this — it calls the Worker from the
+// Next server, not the browser, which is what lets its token stay in an
+// httpOnly cookie. This is here for direct browser access during debugging.
 app.use(
   "/admin/*",
   cors({
@@ -26,7 +30,7 @@ app.use(
       // `||` not `??`: an ADMIN_ORIGIN set to "" would otherwise produce [""],
       // which matches Hono's empty-string origin for requests carrying no
       // Origin header at all.
-      const configured: string = c.env.ADMIN_ORIGIN || "http://localhost:5173";
+      const configured: string = c.env.ADMIN_ORIGIN || "http://localhost:3000";
 
       const allowed = configured
         .split(",")

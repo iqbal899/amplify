@@ -11,7 +11,8 @@ Creator-earnings platform. Brands run campaigns around a track; creators enroll,
 | Package | Stack | Purpose |
 | --- | --- | --- |
 | `amplify-frontend/` | Expo (SDK 56), React Native, expo-router, Zustand | Creator mobile app |
-| `amplify-backend/` | Hono, Cloudflare Workers, Postgres, Drizzle | Creator-facing API + view-tracking cron |
+| `amplify-backend/` | Hono, Cloudflare Workers, Postgres, Drizzle | Creator-facing API, admin API, view-tracking cron |
+| `amplify-admin/` | Next.js 16 (App Router), Tailwind, shadcn/ui | Internal panel: campaigns and manual payouts |
 
 Each package has its own README with setup detail. This document covers how they fit together.
 
@@ -229,8 +230,13 @@ If it fails, the likely culprits in order are listed under [Likely to break on f
 
 ## Admin
 
-Campaign and payout operations, under `/admin/*`. Payouts are manual in v1 — the
-API tracks what is owed and records what was sent; it moves no money.
+Campaign and payout operations, under `/admin/*`, rendered by `amplify-admin/`
+(see its README for the panel itself). Payouts are manual in v1 — the API tracks
+what is owed and records what was sent; **it moves no money**. An operator sends
+the transfer from their own UPI app and records it afterwards.
+
+The panel calls this API from the Next server, never the browser, so the admin
+token stays in an httpOnly cookie.
 
 ### Auth
 
@@ -326,6 +332,7 @@ production — this is the only place it is caught.
 - Settlement against real Postgres — campaign closes, payout written at correct amount, post-deadline snapshots correctly ignored
 - Cron handler fires and manages its own DB lifecycle
 - Admin API against real Postgres — login and token guards (both directions), milestone validation, draft invisibility, full draft → open → closed lifecycle, settlement writing a payout via the snapshot fallback, mark-paid and its double-pay guard
+- Admin panel end to end in a real browser — sign-in, campaign create → start → end & settle, derived milestone totals, and the payout worklist through add-UPI → record-payment → paid
 
 ### Written but never executed against real data
 
@@ -373,7 +380,7 @@ Untested seams, in rough order of risk:
 
 **5. Deferred, still open**
 
-- Admin **web panel** — the API exists (see [Admin](#admin)), nothing renders it yet
+- Rate limiting on `/admin/login` — blocks putting the panel on the internet
 - YouTube support — the `platform` enum allows it, nothing implements it
 - Payment gateway — payouts stay manual in v1
 - Token-refresh cron — the function exists but nothing schedules it

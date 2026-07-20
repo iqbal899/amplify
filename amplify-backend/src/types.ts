@@ -18,8 +18,8 @@ export type AppEnv = {
     ADMIN_PASSWORD: string;
 
     // Origin the admin panel is served from, for CORS. Comma-separated for
-    // more than one (local dev plus deployed). Unset falls back to the Vite
-    // dev server, so production must set it explicitly.
+    // more than one. Only matters for direct browser access — the panel itself
+    // calls this Worker server-side, so it never sends a preflight.
     ADMIN_ORIGIN?: string;
   };
   Variables: {
