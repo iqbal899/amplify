@@ -1,4 +1,4 @@
-import { and, eq, ilike, or } from "drizzle-orm";
+import { and, eq, ilike, ne, or } from "drizzle-orm";
 
 import { campaigns } from "../db/schema/campaigns";
 import type { Database } from "../db/client";
@@ -16,7 +16,10 @@ export async function getCampaigns(
   db: Database,
   filters: CampaignFilters
 ) {
-  const conditions = [];
+  // Creator-facing: a draft is a campaign an admin is still writing, and must
+  // never appear here. The validator's status enum cannot express "draft", so
+  // this is not reachable via ?status= either — it guards the unfiltered case.
+  const conditions = [ne(campaigns.status, "draft")];
 
   if (filters.status) {
     conditions.push(eq(campaigns.status, filters.status));
@@ -51,10 +54,12 @@ export async function getCampaigns(
 }
 
 export async function getCampaignById(db: Database, id: number) {
+  // Also excludes drafts — /campaigns/:id is unauthenticated, so without this a
+  // draft is readable by anyone who guesses its id.
   const [campaign] = await db
     .select()
     .from(campaigns)
-    .where(eq(campaigns.id, id))
+    .where(and(eq(campaigns.id, id), ne(campaigns.status, "draft")))
     .limit(1);
 
   if (!campaign) {

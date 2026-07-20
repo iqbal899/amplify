@@ -78,6 +78,20 @@
       "when": 1784487566377,
       "tag": "0010_spotty_reptil",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1784529429253,
+      "tag": "0011_furry_makkari",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1784530424903,
+      "tag": "0012_amusing_goliath",
+      "breakpoints": true
     }
   ]
 }

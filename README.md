@@ -88,8 +88,8 @@ So every reading is appended to `view_snapshots`. `reel_submissions.currentViews
 
 | Table | Purpose |
 | --- | --- |
-| `creators` | Account, credentials, Instagram connection (encrypted token, expiry, account type) |
-| `campaigns` | Track, reward pool, spots, `endsAt`, `milestones` jsonb, status |
+| `creators` | Account, credentials, `upiId` (payout destination, entered by an admin), Instagram connection (encrypted token, expiry, account type) |
+| `campaigns` | Track, reward pool, spots, `endsAt`, `milestones` jsonb, status (`draft` → `open` → `closed`) |
 | `enrollments` | Creator ↔ campaign, unique per pair |
 | `reel_submissions` | Reel URL, resolved `instagramMediaId`, `wentLiveAt`, cached `currentViews` |
 | `view_snapshots` | **Append-only** view history: `views`, `reach`, `capturedAt`, `source` |
@@ -116,7 +116,7 @@ docker compose up -d          # Postgres on :5432
 npm run dev                   # Worker on :8787, bound to 0.0.0.0
 ```
 
-Requires `.dev.vars` with `DATABASE_URL`, `JWT_SECRET`, `TOKEN_ENCRYPTION_KEY`, and the Instagram app credentials.
+Requires `.dev.vars` with `DATABASE_URL`, `JWT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `ADMIN_PASSWORD`, and the Instagram app credentials.
 
 **Frontend:**
 
@@ -227,6 +227,93 @@ If it fails, the likely culprits in order are listed under [Likely to break on f
 
 ---
 
+## Admin
+
+Campaign and payout operations, under `/admin/*`. Payouts are manual in v1 — the
+API tracks what is owed and records what was sent; it moves no money.
+
+### Auth
+
+A single shared password in `ADMIN_PASSWORD` (worker secret; `.dev.vars`
+locally). `POST /admin/login` returns a 12-hour JWT; every other route needs it
+as `Authorization: Bearer`. There is no admin table, so a payout records *what*
+happened but not *who* did it — fine for one operator, revisit for several.
+
+Admin tokens are signed with `ADMIN_PASSWORD` mixed into the key, so **rotating
+the password revokes every outstanding token**. With no admin table that is the
+only revocation mechanism there is; without it, rotating after a suspected leak
+would achieve nothing for 12 hours. Creator tokens are signed with the bare
+secret and carry no `role`, so the two are not interchangeable in either
+direction.
+
+> **`/admin/login` is not rate limited.** Unlimited guesses against one shared
+> password that gates the payout worklist (every creator's name, email, phone
+> and UPI id) and `PATCH /admin/creators/:id/upi`, which can redirect where a
+> pending payout goes. **Fix before the panel is internet-facing** — it needs a
+> KV or Durable Object binding, neither of which is configured yet.
+
+`ADMIN_ORIGIN` is the panel's origin, for CORS (comma-separated for several).
+Unset it defaults to `http://localhost:5173`, so **production must set it**.
+
+### Campaign lifecycle
+
+```
+draft ──start──▶ open ──end (or endsAt passes)──▶ closed
+                  │                                 ▲
+                  └──────────── full ───────────────┘
+```
+
+`full` is a running campaign that cannot take more creators. Polling and
+settlement both treat it exactly like `open` — if they did not, a campaign would
+stop accumulating snapshots the moment it filled up, or never close at all.
+Nothing sets it automatically today; enrolment gates on the `spotsFilled`
+counter, not on status.
+
+Campaigns are created as `draft` and are invisible to creators until started —
+both the campaign list and the by-id lookup exclude drafts, the latter because
+`/campaigns/:id` is unauthenticated. `start` refuses a campaign with no deadline
+or no milestones, either of which would mean nobody could ever be paid.
+
+**`end` is not a status change.** It brings `endsAt` forward to now and then runs
+the ordinary settlement. Writing `status: closed` directly would drop the
+campaign out of the `open` filter that settlement and polling both use, closing
+it permanently with nobody paid and no way back. Manual end and the cron share
+one `settleCampaign` path so they cannot drift.
+
+Ending calls Instagram once per submission, so it is much slower than the other
+routes — do not retry a slow response, as a second run re-snapshots every reel.
+
+| Route | Purpose |
+| --- | --- |
+| `POST /admin/login` | Exchange the password for a token |
+| `GET/POST /admin/campaigns` | List (any status, with enrolment counts) / create as draft |
+| `GET/PATCH /admin/campaigns/:id` | Read (drafts included) / edit; closed campaigns are frozen |
+| `POST /admin/campaigns/:id/start` | draft → open |
+| `POST /admin/campaigns/:id/end` | Settle and close early |
+| `GET /admin/payouts` | Worklist: amount, destination UPI, reel, campaign |
+| `POST /admin/payouts/:id/paid` | Record a transfer, with its reference |
+| `POST /admin/payouts/:id/failed` | Mark a transfer failed |
+| `PATCH /admin/creators/:id/upi` | Set a creator's payout UPI id |
+
+Both payout transitions are conditioned on the row not already being `paid`, so
+two operators working the same list cannot both pay one creator — the second
+request gets a 409 rather than silently overwriting the first one's reference.
+
+`failed` is deliberately **not** terminal. A bounced UPI transfer is the ordinary
+case, and `payouts` is unique on `submissionId` so settlement can never issue a
+replacement row; treating `failed` as final would strand money owed behind
+hand-written SQL. Fix the creator's UPI id and mark it paid on the next attempt.
+
+### Milestones
+
+`POST`/`PATCH` validate milestone JSON strictly: each `cumulativePayout` must
+equal the running total of `incrementalPayout` when tiers are sorted by views,
+and no two tiers may share a view target. Settlement pays `cumulativePayout` and
+ignores `incrementalPayout`, so a mismatch between them is invisible in
+production — this is the only place it is caught.
+
+---
+
 ## Current status
 
 ### Working and verified
@@ -238,6 +325,7 @@ If it fails, the likely culprits in order are listed under [Likely to break on f
 - Milestone evaluation — 20 unit tests incl. boundaries, unsorted input, `minDaysLive` gating
 - Settlement against real Postgres — campaign closes, payout written at correct amount, post-deadline snapshots correctly ignored
 - Cron handler fires and manages its own DB lifecycle
+- Admin API against real Postgres — login and token guards (both directions), milestone validation, draft invisibility, full draft → open → closed lifecycle, settlement writing a payout via the snapshot fallback, mark-paid and its double-pay guard
 
 ### Written but never executed against real data
 
@@ -257,7 +345,9 @@ Everything below has been tested only with synthetic view numbers:
 | **Frontend hardcodes `currentViews: 0`** (`campaignStore.ts:94`) | UI shows zeros even once the backend returns real data. |
 | **Migration journal is broken** | `__drizzle_migrations` is empty while all tables exist — the DB was built with `push`, never `migrate`. `npm run migrate` fails (silently, the spinner eats the error). Recent migrations were applied by hand. **Fix before deploying.** |
 | `kyc.tsx:41` calls `setKYC` | That function does not exist on the auth store; the screen will crash. |
-| No CORS middleware | Irrelevant on native, fatal for `expo start --web`. |
+| CORS is scoped to `/admin/*` only | Added for the browser admin panel. Still absent on creator routes — irrelevant on native, fatal for `expo start --web`. |
+| **`/admin/login` has no rate limiting** | Unlimited guesses against one shared password guarding the payout worklist and UPI destinations. Blocks putting the panel on the internet. |
+| `PATCH /admin/campaigns/:id` can rewrite a live campaign | Milestones and `endsAt` are editable while creators are enrolled, so the terms can change after they have posted. Left open deliberately — extending a deadline is legitimate, cutting a payout tier is not, and the distinction is a policy call. |
 | `@supabase/supabase-js` is a dead dependency | Zero imports anywhere in `src/`. |
 
 ### Likely to break on first real contact
@@ -283,7 +373,7 @@ Untested seams, in rough order of risk:
 
 **5. Deferred, still open**
 
-- Admin APIs (campaign CRUD, payout worklist) — campaigns are currently created by hand via `psql`
+- Admin **web panel** — the API exists (see [Admin](#admin)), nothing renders it yet
 - YouTube support — the `platform` enum allows it, nothing implements it
 - Payment gateway — payouts stay manual in v1
 - Token-refresh cron — the function exists but nothing schedules it

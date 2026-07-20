@@ -10,10 +10,15 @@ import {
     jsonb,
 } from "drizzle-orm/pg-core";
 
+// `draft` is authored-but-not-live: a campaign an admin is still writing.
+// Appended rather than inserted so the migration is a plain ADD VALUE — nothing
+// reads this enum ordinally. Creators never see drafts; the campaign list
+// excludes them unless a status is explicitly requested.
 export const campaignStatusEnum = pgEnum("campaign_status", [
     "open",
     "full",
     "closed",
+    "draft",
 ]);
 
 export const campaigns = pgTable("campaigns", {
@@ -55,7 +60,10 @@ export const campaigns = pgTable("campaigns", {
         }[]
     >(),
 
-    status: campaignStatusEnum("status").default("open"),
+    // NOT NULL matters for correctness, not just tidiness: `status <> 'draft'`
+    // evaluates to NULL for a NULL row, so a nullable column would silently
+    // hide any hand-inserted campaign from the creator-facing list.
+    status: campaignStatusEnum("status").default("open").notNull(),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
