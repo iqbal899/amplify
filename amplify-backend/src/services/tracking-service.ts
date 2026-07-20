@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, lte } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, lte } from "drizzle-orm";
 
 import { campaigns } from "../db/schema/campaigns";
 import { enrollments } from "../db/schema/enrollments";
@@ -205,7 +205,10 @@ export async function getTrackableSubmissions(
     .innerJoin(campaigns, eq(enrollments.campaignId, campaigns.id))
     .where(
       and(
-        eq(campaigns.status, "open"),
+        // `full` is still a running campaign — it just cannot take more
+        // creators. Tracking only `open` would stop snapshotting the moment a
+        // campaign filled up, which is exactly when it matters most.
+        inArray(campaigns.status, ["open", "full"]),
         eq(reelSubmissions.platform, "instagram")
       )
     );
@@ -236,13 +239,110 @@ export async function pollAllSubmissions(db: Database, env: TrackingEnv) {
   return { total: submissions.length, succeeded, failed };
 }
 
+type SettleableCampaign = {
+  id: number;
+  endsAt: Date | null;
+  milestones: unknown;
+};
+
 /**
- * Closes campaigns whose deadline has passed.
+ * Settles and closes one campaign.
  *
  * Takes one final `settlement` snapshot per submission and pays against THAT
  * reading — not the highest ever seen. A spike that Instagram later reverses
  * must not be payable.
+ *
+ * Separate from `settleDueCampaigns` because closing a campaign by hand has to
+ * run this exact path. Flipping `status` to `closed` on its own would drop the
+ * campaign out of the `open` filter every other query here uses, closing it
+ * permanently with nobody paid and no way back.
  */
+export async function settleCampaign(
+  db: Database,
+  env: TrackingEnv,
+  campaign: SettleableCampaign
+) {
+  const settledAt = campaign.endsAt ?? new Date();
+
+  const submissions = await db
+    .select({
+      submissionId: reelSubmissions.id,
+      creatorId: enrollments.creatorId,
+      reelUrl: reelSubmissions.reelUrl,
+      instagramMediaId: reelSubmissions.instagramMediaId,
+      platform: reelSubmissions.platform,
+      wentLiveAt: reelSubmissions.wentLiveAt,
+      submittedAt: reelSubmissions.submittedAt,
+    })
+    .from(reelSubmissions)
+    .innerJoin(enrollments, eq(reelSubmissions.enrollmentId, enrollments.id))
+    .where(eq(enrollments.campaignId, campaign.id));
+
+  let paidCount = 0;
+
+  for (const submission of submissions) {
+    const live = await snapshotSubmission(
+      db,
+      env,
+      submission,
+      "settlement"
+    ).catch(() => null);
+
+    // A failed live read must not silently zero out a creator's payout —
+    // Instagram being down for one 15-minute window would otherwise close the
+    // campaign with nobody paid. Fall back to the last reading taken at or
+    // before the deadline, which is what the history exists for.
+    const views =
+      live?.views ?? (await getViewsAtDeadline(db, submission.submissionId, settledAt));
+
+    if (views === null) continue;
+
+    // Fall back to submittedAt only if the reel's real publish time was
+    // never resolved; it is the more conservative (later) of the two.
+    const liveFrom = submission.wentLiveAt ?? submission.submittedAt;
+    const daysLive = daysBetween(liveFrom, settledAt);
+
+    const qualified = evaluateMilestone(
+      campaign.milestones as Milestone[] | null,
+      views,
+      daysLive
+    );
+
+    if (!qualified) continue;
+
+    // payouts is unique on submissionId, so this is the single cumulative
+    // payout for the campaign rather than one row per milestone.
+    await db
+      .insert(payouts)
+      .values({
+        creatorId: submission.creatorId,
+        submissionId: submission.submissionId,
+        amount: String(qualified.milestone.cumulativePayout),
+        status: "pending",
+      })
+      .onConflictDoNothing();
+
+    paidCount++;
+  }
+
+  await db
+    .update(campaigns)
+    .set({ status: "closed" })
+    .where(eq(campaigns.id, campaign.id));
+
+  await db
+    .update(enrollments)
+    .set({ status: "completed" })
+    .where(eq(enrollments.campaignId, campaign.id));
+
+  return {
+    campaignId: campaign.id,
+    submissions: submissions.length,
+    paid: paidCount,
+  };
+}
+
+/** Closes every campaign whose deadline has passed. Called by the cron. */
 export async function settleDueCampaigns(db: Database, env: TrackingEnv) {
   const due = await db
     .select({
@@ -253,7 +353,10 @@ export async function settleDueCampaigns(db: Database, env: TrackingEnv) {
     .from(campaigns)
     .where(
       and(
-        eq(campaigns.status, "open"),
+        // Must match getTrackableSubmissions. If `full` were settleable but not
+        // pollable (or vice versa) a filled campaign would either stop
+        // accumulating snapshots or never close at all.
+        inArray(campaigns.status, ["open", "full"]),
         isNotNull(campaigns.endsAt),
         lte(campaigns.endsAt, new Date())
       )
@@ -262,84 +365,7 @@ export async function settleDueCampaigns(db: Database, env: TrackingEnv) {
   const results = [];
 
   for (const campaign of due) {
-    const settledAt = campaign.endsAt ?? new Date();
-
-    const submissions = await db
-      .select({
-        submissionId: reelSubmissions.id,
-        creatorId: enrollments.creatorId,
-        reelUrl: reelSubmissions.reelUrl,
-        instagramMediaId: reelSubmissions.instagramMediaId,
-        platform: reelSubmissions.platform,
-        wentLiveAt: reelSubmissions.wentLiveAt,
-        submittedAt: reelSubmissions.submittedAt,
-      })
-      .from(reelSubmissions)
-      .innerJoin(enrollments, eq(reelSubmissions.enrollmentId, enrollments.id))
-      .where(eq(enrollments.campaignId, campaign.id));
-
-    let paidCount = 0;
-
-    for (const submission of submissions) {
-      const live = await snapshotSubmission(
-        db,
-        env,
-        submission,
-        "settlement"
-      ).catch(() => null);
-
-      // A failed live read must not silently zero out a creator's payout —
-      // Instagram being down for one 15-minute window would otherwise close the
-      // campaign with nobody paid. Fall back to the last reading taken at or
-      // before the deadline, which is what the history exists for.
-      const views =
-        live?.views ?? (await getViewsAtDeadline(db, submission.submissionId, settledAt));
-
-      if (views === null) continue;
-
-      // Fall back to submittedAt only if the reel's real publish time was
-      // never resolved; it is the more conservative (later) of the two.
-      const liveFrom = submission.wentLiveAt ?? submission.submittedAt;
-      const daysLive = daysBetween(liveFrom, settledAt);
-
-      const qualified = evaluateMilestone(
-        campaign.milestones as Milestone[] | null,
-        views,
-        daysLive
-      );
-
-      if (!qualified) continue;
-
-      // payouts is unique on submissionId, so this is the single cumulative
-      // payout for the campaign rather than one row per milestone.
-      await db
-        .insert(payouts)
-        .values({
-          creatorId: submission.creatorId,
-          submissionId: submission.submissionId,
-          amount: String(qualified.milestone.cumulativePayout),
-          status: "pending",
-        })
-        .onConflictDoNothing();
-
-      paidCount++;
-    }
-
-    await db
-      .update(campaigns)
-      .set({ status: "closed" })
-      .where(eq(campaigns.id, campaign.id));
-
-    await db
-      .update(enrollments)
-      .set({ status: "completed" })
-      .where(eq(enrollments.campaignId, campaign.id));
-
-    results.push({
-      campaignId: campaign.id,
-      submissions: submissions.length,
-      paid: paidCount,
-    });
+    results.push(await settleCampaign(db, env, campaign));
   }
 
   return results;

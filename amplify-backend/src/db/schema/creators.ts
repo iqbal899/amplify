@@ -19,6 +19,11 @@ export const creators = pgTable("creators", {
 
   phone: varchar("phone", { length: 20 }),
 
+  // Where a payout is actually sent. Entered by an admin, not by the creator —
+  // payouts.upiReference is the reference of a transfer already made, which is
+  // no use when you are trying to work out who to send money to.
+  upiId: varchar("upi_id", { length: 255 }),
+
   instagramUsername: varchar("instagram_username", { length: 100 }),
 
   instagramUserId: varchar("instagram_user_id", { length: 255 }),

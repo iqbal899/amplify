@@ -11,6 +11,16 @@ export type AppEnv = {
 
     // 32 bytes, base64. Encrypts creator access tokens at rest.
     TOKEN_ENCRYPTION_KEY: string;
+
+    // Single shared admin password for the internal panel. There is no admin
+    // table, so payouts record what was done but not which person did it —
+    // acceptable for one operator, revisit before there are several.
+    ADMIN_PASSWORD: string;
+
+    // Origin the admin panel is served from, for CORS. Comma-separated for
+    // more than one. Only matters for direct browser access — the panel itself
+    // calls this Worker server-side, so it never sends a preflight.
+    ADMIN_ORIGIN?: string;
   };
   Variables: {
     db: Database;
